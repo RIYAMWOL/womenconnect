@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "195085744714",
+    "project_id": "womenconnect-ecc5b",
+    "storage_bucket": "womenconnect-ecc5b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:195085744714:android:98f5a7e52b4ca48fb3c4b3",
+        "android_client_info": {
+          "package_name": "com.example.womenconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnxDt1KHiczRaK9VKv-esLcmlP4HTMn6Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
