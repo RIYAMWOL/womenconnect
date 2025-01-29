@@ -1,135 +1,9 @@
-// //   import 'package:flutter/material.dart';
-
-// // class UserSignupScreen extends StatefulWidget {
-// //   const UserSignupScreen({super.key});
-
-// //   @override
-// //   State<UserSignupScreen> createState() => _UserSignupScreenState();
-// // }
-
-// // class _UserSignupScreenState extends State<UserSignupScreen> {
-// //   @override
-// //   Widget build(BuildContext context) {
-// //     return Scaffold(
-// //       body: Container(
-// //         decoration: const BoxDecoration(
-// //           gradient: LinearGradient(
-// //             colors: [Color(0xFFFDEB71), Color(0xFFF8D800)],
-// //             begin: Alignment.topCenter,
-// //             end: Alignment.bottomCenter,
-// //           ),
-// //         ),
-// //         child: SingleChildScrollView(
-// //           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 50.0),
-// //           child: Column(
-// //             crossAxisAlignment: CrossAxisAlignment.center,
-// //             children: [
-// //               const Text(
-// //                 "Welcome!",
-// //                 style: TextStyle(
-// //                   fontSize: 28,
-// //                   fontWeight: FontWeight.bold,
-// //                   color: Colors.black,
-// //                 ),
-// //               ),
-// //               const SizedBox(height: 10),
-// //               const Text(
-// //                 "Create your account to get started",
-// //                 style: TextStyle(fontSize: 16, color: Colors.black87),
-// //                 textAlign: TextAlign.center,
-// //               ),
-// //               const SizedBox(height: 30),
-// //               Card(
-// //                 elevation: 8.0,
-// //                 shape: RoundedRectangleBorder(
-// //                   borderRadius: BorderRadius.circular(20.0),
-// //                 ),
-// //                 child: Padding(
-// //                   padding: const EdgeInsets.all(20.0),
-// //                   child: Column(
-// //                     children: [
-// //                       TextField(
-// //                         decoration: InputDecoration(
-// //                           labelText: "Full Name",
-// //                           hintText: "Enter your full name",
-// //                           prefixIcon: const Icon(Icons.person),
-// //                           border: OutlineInputBorder(
-// //                             borderRadius: BorderRadius.circular(15),
-// //                           ),
-// //                         ),
-// //                       ),
-// //                       const SizedBox(height: 15),
-// //                       TextField(
-// //                         decoration: InputDecoration(
-// //                           labelText: "Email",
-// //                           hintText: "Enter your email address",
-// //                           prefixIcon: const Icon(Icons.email),
-// //                           border: OutlineInputBorder(
-// //                             borderRadius: BorderRadius.circular(15),
-// //                           ),
-// //                         ),
-// //                       ),
-// //                       const SizedBox(height: 15),
-// //                       TextField(
-// //                         decoration: InputDecoration(
-// //                           labelText: "Password",
-// //                           hintText: "Enter your password",
-// //                           prefixIcon: const Icon(Icons.lock),
-// //                           border: OutlineInputBorder(
-// //                             borderRadius: BorderRadius.circular(15),
-// //                           ),
-// //                         ),
-// //                         obscureText: true,
-// //                       ),
-// //                       const SizedBox(height: 15),
-// //                       TextField(
-// //                         decoration: InputDecoration(
-// //                           labelText: "Confirm Password",
-// //                           hintText: "Re-enter your password",
-// //                           prefixIcon: const Icon(Icons.lock_outline),
-// //                           border: OutlineInputBorder(
-// //                             borderRadius: BorderRadius.circular(15),
-// //                           ),
-// //                         ),
-// //                         obscureText: true,
-// //                       ),
-// //                       const SizedBox(height: 30),
-// //                       ElevatedButton(
-// //                         onPressed: () {
-// //                           // Handle sign-up logic
-// //                         },
-// //                         style: ElevatedButton.styleFrom(
-// //                           backgroundColor: Colors.yellow,
-// //                           padding: const EdgeInsets.symmetric(vertical: 16.0),
-// //                           shape: RoundedRectangleBorder(
-// //                             borderRadius: BorderRadius.circular(15),
-// //                           ),
-// //                           elevation: 5,
-// //                         ),
-// //                         child: const Text(
-// //                           'Sign Up',
-// //                           style: TextStyle(
-// //                             color: Colors.black,
-// //                             fontSize: 16,
-// //                             fontWeight: FontWeight.bold,
-// //                           ),
-// //                         ),
-// //                       ),
-// //                     ],
-// //                   ),
-// //                 ),
-// //               ),
-// //             ],
-// //           ),
-// //         ),
-// //       ),
-// //     );
-// //   }
-// // }
-
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:womenconnect/helper.dart';
 
 class UserSignupScreen extends StatefulWidget {
   const UserSignupScreen({super.key});
@@ -139,201 +13,299 @@ class UserSignupScreen extends StatefulWidget {
 }
 
 class _UserSignupScreenState extends State<UserSignupScreen> {
-  final _auth = FirebaseAuth.instance;
-  final _firestore = FirebaseFirestore.instance;
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
 
-  void _signUp() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        // Sign up the user with email and password
-        final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
+  File? _profileImage;
+  final ImagePicker _picker = ImagePicker();
 
-        // Add user details to Firestore
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'fullName': _fullNameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'createdAt': Timestamp.now(),
-        });
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sign-up successful!')),
-        );
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
 
-        // Navigate to another screen or clear the form
-      } on FirebaseAuthException catch (e) {
-        String errorMessage;
-        if (e.code == 'email-already-in-use') {
-          errorMessage = 'The email is already in use.';
-        } else if (e.code == 'weak-password') {
-          errorMessage = 'The password is too weak.';
-        } else {
-          errorMessage = 'An error occurred: ${e.message}';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An unexpected error occurred: $e')),
-        );
-      }
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    } else {
+      _showSnackBar("No image selected");
     }
+  }
+
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return null;
+
+    try {
+      String? fileName =await uploadImageToCloudinary(_profileImage!.path);
+      return fileName;
+    } catch (e) {
+      print("Error uploading image: $e");
+      return null;
+    }
+  }
+
+  Future<void> _selectDateOfBirth(BuildContext context) async {
+    DateTime initialDate = DateTime.now();
+    DateTime firstDate = DateTime(1900);
+    DateTime lastDate = DateTime.now();
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+
+    if (picked != null && picked != initialDate) {
+      setState(() {
+        _dobController.text = "${picked.toLocal()}".split(' ')[0];
+      });
+    }
+  }
+
+  void _signUpUser() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+    final phone = _phoneController.text.trim();
+    final dob = _dobController.text.trim();
+
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty ||
+        phone.isEmpty ||
+        dob.isEmpty) {
+      _showSnackBar("Please fill all fields");
+      return;
+    }
+
+    if (password != confirmPassword) {
+      _showSnackBar("Passwords do not match");
+      return;
+    }
+
+    try {
+      // Create user with Firebase Authentication
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final uid = userCredential.user?.uid;
+
+      // Upload the profile image if available
+      String? profileImageUrl = await _uploadProfileImage();
+
+      // Add user data to Firestore
+      await _firestore.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'dob': dob,
+        'uid': uid,
+        'profileImage': profileImageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      _showSnackBar("Sign up successful!");
+      // Navigate to another screen, e.g., Home
+    } on FirebaseAuthException catch (e) {
+      _showSnackBar(e.message ?? "An error occurred");
+    } catch (e) {
+      _showSnackBar("An unexpected error occurred");
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFFDEB71), Color(0xFFF8D800)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          "Create Account",
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 50.0),
-          child: Form(
-            key: _formKey,
+      ),
+      body: Stack(
+        children: [
+          // Background Gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.lightBlue.shade400, Colors.lightBlue.shade400],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+          // Form Container
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  "Welcome!",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                SizedBox(height: 120),
+                // Profile Photo
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey.shade300,
+                    backgroundImage: _profileImage != null
+                        ? FileImage(_profileImage!)
+                        : null,
+                    child: _profileImage == null
+                        ? Icon(Icons.camera_alt, color: Colors.white, size: 30)
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Create your account to get started",
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                  textAlign: TextAlign.center,
+                SizedBox(height: 16),
+
+                // Name Field
+                _buildTextField(
+                  controller: _nameController,
+                  label: 'Full Name',
+                  hintText: 'Enter your full name',
+                  icon: Icons.person,
                 ),
-                const SizedBox(height: 30),
-                Card(
-                  elevation: 8.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _fullNameController,
-                          decoration: InputDecoration(
-                            labelText: "Full Name",
-                            hintText: "Enter your full name",
-                            prefixIcon: const Icon(Icons.person),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your full name';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 15),
-                        TextFormField(
-                          controller: _emailController,
-                          decoration: InputDecoration(
-                            labelText: "Email",
-                            hintText: "Enter your email address",
-                            prefixIcon: const Icon(Icons.email),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your email';
-                            }
-                            if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                              return 'Please enter a valid email';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 15),
-                        TextFormField(
-                          controller: _passwordController,
-                          decoration: InputDecoration(
-                            labelText: "Password",
-                            hintText: "Enter your password",
-                            prefixIcon: const Icon(Icons.lock),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.length < 6) {
-                              return 'Password must be at least 6 characters long';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 15),
-                        TextFormField(
-                          controller: _confirmPasswordController,
-                          decoration: InputDecoration(
-                            labelText: "Confirm Password",
-                            hintText: "Re-enter your password",
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          ),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value != _passwordController.text) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 30),
-                        ElevatedButton(
-                          onPressed: _signUp,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.yellow,
-                            padding: const EdgeInsets.symmetric(vertical: 16.0),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            elevation: 5,
-                          ),
-                          child: const Text(
-                            'Sign Up',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
+                SizedBox(height: 16),
+
+                // Email Field
+                _buildTextField(
+                  controller: _emailController,
+                  label: 'Email Address',
+                  hintText: 'Enter your email',
+                  icon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 16),
+
+                // Phone Field
+                _buildTextField(
+                  controller: _phoneController,
+                  label: 'Phone Number',
+                  hintText: 'Enter your phone number',
+                  icon: Icons.phone,
+                  keyboardType: TextInputType.phone,
+                ),
+                SizedBox(height: 16),
+
+                // Date of Birth Field
+                GestureDetector(
+                  onTap: () => _selectDateOfBirth(context),
+                  child: AbsorbPointer(
+                    child: _buildTextField(
+                      controller: _dobController,
+                      label: 'Date of Birth',
+                      hintText: 'Select your date of birth',
+                      icon: Icons.calendar_today,
                     ),
                   ),
+                ),
+                SizedBox(height: 16),
+
+                // Password Field
+                _buildTextField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  hintText: 'Enter a strong password',
+                  icon: Icons.lock,
+                  obscureText: true,
+                ),
+                SizedBox(height: 16),
+
+                // Confirm Password Field
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirm Password',
+                  hintText: 'Re-enter your password',
+                  icon: Icons.lock,
+                  obscureText: true,
+                ),
+                SizedBox(height: 30),
+
+                // Submit Button
+                ElevatedButton(
+                  onPressed: _signUpUser,
+                  style: ElevatedButton.styleFrom(
+                    padding:
+                        EdgeInsets.symmetric(vertical: 16.0, horizontal: 80.0),
+                    backgroundColor: const Color.fromARGB(255, 17, 163, 226),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                    ),
+                    elevation: 5,
+                    textStyle: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  child: Text("Sign Up"),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Custom TextField Widget with styling
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hintText,
+    required IconData icon,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: const Color.fromARGB(255, 15, 15, 15)),
+          labelText: label,
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey[600]),
+          labelStyle: TextStyle(color: const Color.fromARGB(255, 25, 23, 23)),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30.0),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
         ),
       ),
     );
