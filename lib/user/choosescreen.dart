@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:womenconnect/admin/admin%20login.dart';
+import 'package:womenconnect/professional/profesional%20login.dart';
+import 'package:womenconnect/user/user%20login.dart';
 
 class ChooseScreen extends StatefulWidget {
   const ChooseScreen({super.key});
@@ -46,8 +49,21 @@ class _ChooseScreenState extends State<ChooseScreen> {
 
                 ElevatedButton(
                   onPressed: selectedRole != null
-                      ? () {
-                          // Handle continue action
+                      ? () {if(selectedRole=="User")
+            {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => UserLoginScreen(),));
+            }
+            else if(selectedRole=="Admin")
+            {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => AdminLoginScreen(),));
+            }
+              else if(selectedRole=="Professional")
+            {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ProfessionalLoginScreen(),));
+            }
+                            // Ha
+                          //
+                          //ndle continue action
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Proceeding as $selectedRole')),
                           );
@@ -85,6 +101,7 @@ class _ChooseScreenState extends State<ChooseScreen> {
       child: ElevatedButton(
         onPressed: () {
           setState(() {
+            
             selectedRole = title; // Update selected role
           });
         },

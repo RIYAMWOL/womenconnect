@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:womenconnect/user/forgotpage.dart';
+import 'package:womenconnect/professional/professional%20forgotpage.dart';
 
-class UserLoginScreen extends StatefulWidget {
-  const UserLoginScreen({super.key});
+class ProfessionalLoginScreen extends StatefulWidget {
+  const ProfessionalLoginScreen({super.key});
 
   @override
-  State<UserLoginScreen> createState() => _UserLoginScreenState();
+  State<ProfessionalLoginScreen> createState() => _ProfessionalLoginScreenState();
 }
 
-class _UserLoginScreenState extends State<UserLoginScreen> {
+class _ProfessionalLoginScreenState extends State<ProfessionalLoginScreen> {
   final _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _loginUser() async {
+  void _loginProfessional() async {
     if (_formKey.currentState!.validate()) {
       try {
         await _auth.signInWithEmailAndPassword(
@@ -28,11 +28,11 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
           const SnackBar(content: Text('Login successful!')),
         );
 
-        // Navigate to home screen or dashboard
+        // Navigate to professional dashboard or home screen
       } on FirebaseAuthException catch (e) {
         String errorMessage;
         if (e.code == 'user-not-found') {
-          errorMessage = 'No user found for this email.';
+          errorMessage = 'No professional account found for this email.';
         } else if (e.code == 'wrong-password') {
           errorMessage = 'Incorrect password. Try again.';
         } else {
@@ -56,7 +56,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+            colors: [Color(0xFF1E3C72), Color(0xFF2A5298)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -77,7 +77,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        "User Login",
+                        "Professional Login",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -89,7 +89,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                         controller: _emailController,
                         decoration: InputDecoration(
                           labelText: "Email",
-                          hintText: "Enter your email",
+                          hintText: "Enter your professional email",
                           prefixIcon: const Icon(Icons.email),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
@@ -129,7 +129,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                       ),
                       const SizedBox(height: 30),
                       ElevatedButton(
-                        onPressed: _loginUser,
+                        onPressed: _loginProfessional,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
                           padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -150,8 +150,8 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                       const SizedBox(height: 15),
                       TextButton(
                         onPressed: () {
-            {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPasswordScreen(),));
+                                {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ProfessionalForgotPasswordScreen(),));
             }
                           // Navigate to password reset screen
                         },

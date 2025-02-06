@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:womenconnect/user/forgotpage.dart';
+import 'package:womenconnect/admin/admin%20forgotpage.dart';
 
-class UserLoginScreen extends StatefulWidget {
-  const UserLoginScreen({super.key});
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
 
   @override
-  State<UserLoginScreen> createState() => _UserLoginScreenState();
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
 
-class _UserLoginScreenState extends State<UserLoginScreen> {
+class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _loginUser() async {
+  void _loginAdmin() async {
     if (_formKey.currentState!.validate()) {
       try {
         await _auth.signInWithEmailAndPassword(
@@ -25,14 +25,14 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful!')),
+          const SnackBar(content: Text('Admin Login Successful!')),
         );
 
-        // Navigate to home screen or dashboard
+        // Navigate to Admin Dashboard
       } on FirebaseAuthException catch (e) {
         String errorMessage;
         if (e.code == 'user-not-found') {
-          errorMessage = 'No user found for this email.';
+          errorMessage = 'No admin account found for this email.';
         } else if (e.code == 'wrong-password') {
           errorMessage = 'Incorrect password. Try again.';
         } else {
@@ -56,7 +56,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+            colors: [Color(0xFF8B0000), Color(0xFF2C001E)], // Dark Red Theme
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -77,7 +77,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        "User Login",
+                        "Admin Login",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -89,8 +89,8 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                         controller: _emailController,
                         decoration: InputDecoration(
                           labelText: "Email",
-                          hintText: "Enter your email",
-                          prefixIcon: const Icon(Icons.email),
+                          hintText: "Enter your admin email",
+                          prefixIcon: const Icon(Icons.admin_panel_settings),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
@@ -129,9 +129,9 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                       ),
                       const SizedBox(height: 30),
                       ElevatedButton(
-                        onPressed: _loginUser,
+                        onPressed: _loginAdmin,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
+                          backgroundColor: Colors.redAccent,
                           padding: const EdgeInsets.symmetric(vertical: 16.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
@@ -150,14 +150,15 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                       const SizedBox(height: 15),
                       TextButton(
                         onPressed: () {
-            {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPasswordScreen(),));
+                          {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => AdminForgotPasswordScreen(),));
             }
+
                           // Navigate to password reset screen
                         },
                         child: const Text(
                           "Forgot Password?",
-                          style: TextStyle(color: Colors.blueAccent),
+                          style: TextStyle(color: Colors.redAccent),
                         ),
                       ),
                     ],

@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:womenconnect/user/choosescreen.dart';
+import 'package:womenconnect/user/edit%20userprofile.dart';
 
 class UserProfilePage extends StatefulWidget {
   @override
@@ -47,7 +49,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   void _logout() async {
     await _auth.signOut();
-    Navigator.pushReplacementNamed(context, '/login'); // Navigate to login screen
+    Navigator.pushAndRemoveUntil(context,MaterialPageRoute(builder: (context) => ChooseScreen(),) , (route) => false,); // Navigate to login screen
   }
 
   @override
@@ -102,7 +104,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () {
-                      // Navigate to Edit Profile Page
+
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfilePage(),));   // Navigate to Edit Profile Page
                     },
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 12, horizontal: 40),
