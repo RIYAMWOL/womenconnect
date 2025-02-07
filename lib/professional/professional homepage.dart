@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 
-class UserHomePage extends StatefulWidget {
-  const UserHomePage({super.key});
+class DoctorHomePage extends StatefulWidget {
+  const DoctorHomePage({super.key});
 
   @override
-  State<UserHomePage> createState() => _UserHomePageState();
+  State<DoctorHomePage> createState() => _DoctorHomePageState();
 }
 
-class _UserHomePageState extends State<UserHomePage> {
+class _DoctorHomePageState extends State<DoctorHomePage> {
   int _selectedIndex = 0; // Track selected tab
 
   // List of pages corresponding to each navigation tab
   final List<Widget> _pages = [
-    HomeScreen(), // Updated home screen with grid layout
+    DoctorDashboard(), // Updated doctor dashboard
     Center(child: Text("Profile Page", style: TextStyle(fontSize: 20))),
-    Center(child: Text("Accommodation Page", style: TextStyle(fontSize: 20))),
-    Center(child: Text("Marketplace Page", style: TextStyle(fontSize: 20))),
-    Center(child: Text("Notifications Page", style: TextStyle(fontSize: 20))),
     Center(child: Text("Appointments Page", style: TextStyle(fontSize: 20))),
+    Center(child: Text("Prescriptions Page", style: TextStyle(fontSize: 20))),
+    Center(child: Text("Reports & Records Page", style: TextStyle(fontSize: 20))),
   ];
 
   void _onItemTapped(int index) {
@@ -30,8 +29,8 @@ class _UserHomePageState extends State<UserHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("WomenConnect"),
-        backgroundColor: Colors.green,
+        title: const Text("Doctor Dashboard"),
+        backgroundColor: Colors.blue,
       ),
       body: _pages[_selectedIndex], // Display selected page
 
@@ -39,32 +38,28 @@ class _UserHomePageState extends State<UserHomePage> {
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: Colors.green,
+        selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
+            icon: Icon(Icons.dashboard),
+            label: "Dashboard",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: "Profile",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.hotel),
-            label: "Accommodation",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store),
-            label: "Marketplace",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: "Notifications",
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
             label: "Appointments",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medical_services),
+            label: "Prescriptions",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long),
+            label: "Records",
           ),
         ],
       ),
@@ -72,14 +67,13 @@ class _UserHomePageState extends State<UserHomePage> {
   }
 }
 
-// New Home Screen with Dashboard-Style Grid Layout
-class HomeScreen extends StatelessWidget {
+// New Doctor Dashboard with Grid Layout
+class DoctorDashboard extends StatelessWidget {
   final List<Map<String, dynamic>> menuItems = [
     {"icon": Icons.person, "label": "Profile", "color": Colors.blue},
-    {"icon": Icons.hotel, "label": "Accommodation", "color": Colors.orange},
-    {"icon": Icons.store, "label": "Marketplace", "color": Colors.purple},
-    {"icon": Icons.notifications, "label": "Notifications", "color": Colors.red},
     {"icon": Icons.calendar_today, "label": "Appointments", "color": Colors.green},
+    {"icon": Icons.medical_services, "label": "Prescriptions", "color": Colors.red},
+    {"icon": Icons.receipt_long, "label": "Reports & Records", "color": Colors.orange},
   ];
 
   @override
@@ -90,12 +84,12 @@ class HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Welcome to WomenConnect!",
+            "Welcome, Doctor!",
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           const Text(
-            "Explore the available features below.",
+            "Manage your profile, appointments, and patient records efficiently.",
             style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 20),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:womenconnect/professional/professional%20signup%20screen.dart';
 import 'package:womenconnect/user/forgotpage.dart';
 
 class UserLoginScreen extends StatefulWidget {
@@ -23,12 +24,17 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+        
+              
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful!')),
         );
 
-        // Navigate to home screen or dashboard
+         {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => UserHomePage(),));
+            }
+              // Navigate to home screen or dashboard
       } on FirebaseAuthException catch (e) {
         String errorMessage;
         if (e.code == 'user-not-found') {
