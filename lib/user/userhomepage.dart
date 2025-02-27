@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:womenconnect/user/accomodationscreen.dart';
+import 'package:womenconnect/user/bookappointment.dart';
+import 'package:womenconnect/user/notification.dart';
+import 'package:womenconnect/user/user%20profile.dart';
+import 'package:womenconnect/user/viewproducts.dart';
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -12,11 +17,11 @@ class _UserHomePageState extends State<UserHomePage> {
 
   final List<Widget> _pages = [
     HomeScreen(),
-    ProfileScreen(),
+    UserProfilePage(),
     AccommodationScreen(),
-    MarketplaceScreen(),
-    AppointmentsScreen(),
+    ViewProductsPage(),
     NotificationsScreen(),
+    BookAppointmentScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -28,6 +33,10 @@ class _UserHomePageState extends State<UserHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("User Dashboard"),
+        backgroundColor: Colors.deepOrangeAccent,
+      ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -55,58 +64,23 @@ class _UserHomePageState extends State<UserHomePage> {
             label: "Marketplace",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: "Appointments",
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.notifications_active),
             label: "Notifications",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: "Appointments",
           ),
         ],
       ),
     );
   }
 }
-
-// Placeholder Screens
 class HomeScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text("Home Screen"));
-  }
-}
+  const HomeScreen({super.key});
 
-class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text("Profile Screen"));
-  }
-}
-
-class AccommodationScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text("Accommodation Screen"));
-  }
-}
-
-class MarketplaceScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text("Marketplace Screen"));
-  }
-}
-
-class AppointmentsScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text("Appointments Screen"));
-  }
-}
-
-class NotificationsScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text("Notifications Screen"));
+    return const Placeholder();
   }
 }
