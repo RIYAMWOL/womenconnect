@@ -63,6 +63,8 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
         'qualification': qualification,
         'contactNumber': contactNumber,
         'uid': uid,
+        'role':'professional',
+        'approved':'false',
         'createdAt': FieldValue.serverTimestamp(),
       });
 

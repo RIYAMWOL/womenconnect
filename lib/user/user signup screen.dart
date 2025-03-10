@@ -116,6 +116,7 @@ class _UserSignupScreenState extends State<UserSignupScreen> {
         'dob': dob,
         'uid': uid,
         'profileImage': profileImageUrl,
+        'role':'user',
         'createdAt': FieldValue.serverTimestamp(),
       });
 

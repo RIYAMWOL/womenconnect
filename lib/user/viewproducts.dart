@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:womenconnect/user/addproducts.dart';
 import 'package:womenconnect/user/buyproduct.dart';
 
 class Product {
@@ -139,16 +138,8 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.pinkAccent,
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddProductScreen()),
-          );
-        },
-        child: Icon(Icons.add, size: 30, color: Colors.white),
-      ),
+     
+      
     );
   }
 }

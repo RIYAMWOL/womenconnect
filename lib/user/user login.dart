@@ -1,41 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:womenconnect/professional/professional%20signup%20screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:womenconnect/professional/professional%20homepage.dart';
+import 'package:womenconnect/seller/seller%20homepage.dart';
 import 'package:womenconnect/user/forgotpage.dart';
 import 'package:womenconnect/user/userhomepage.dart';
+import 'package:womenconnect/admin/adminhomepage.dart';
 
-class UserLoginScreen extends StatefulWidget {
-  const UserLoginScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<UserLoginScreen> createState() => _UserLoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _UserLoginScreenState extends State<UserLoginScreen> {
-  final _auth = FirebaseAuth.instance;
+class _LoginScreenState extends State<LoginScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
+  // Admin Credentials
+  final String adminEmail = "admin@womenconnect.com";
+  final String adminPassword = "Admin@123";
+
+  // Login Function
   void _loginUser() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await _auth.signInWithEmailAndPassword(
+        // Check if the credentials match admin login
+        if (_emailController.text.trim() == adminEmail &&
+            _passwordController.text.trim() == adminPassword) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminHomePage()),
+          );
+          return;
+        }
+
+        // Normal User Login via Firebase Auth
+        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
-        
-              
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login successful!')),
-        );
+        // Fetch User Role from Firestore
+        DocumentSnapshot userDoc = await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
 
-         {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => UserHomePage(),));
-            }
-              // Navigate to home screen or dashboard
+        if (userDoc.exists) {
+          String role = userDoc['role'];
+
+          // Navigate based on role
+          if (role == 'user') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => UserHomePage()),
+            );
+          } else if (role == 'professional') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => DoctorHomePage()),
+            );
+          } else if (role == 'seller') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => SellerHomePage()),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Invalid role assigned. Contact support.')),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User data not found. Contact support.')),
+          );
+        }
       } on FirebaseAuthException catch (e) {
         String errorMessage;
         if (e.code == 'user-not-found') {
@@ -84,7 +129,7 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        "User Login",
+                        "Login",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -157,10 +202,12 @@ class _UserLoginScreenState extends State<UserLoginScreen> {
                       const SizedBox(height: 15),
                       TextButton(
                         onPressed: () {
-            {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => ForgotPasswordScreen(),));
-            }
-                          // Navigate to password reset screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ForgotPasswordScreen(),
+                            ),
+                          );
                         },
                         child: const Text(
                           "Forgot Password?",
