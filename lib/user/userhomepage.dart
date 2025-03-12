@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:womenconnect/user/accomodationscreen.dart';
 import 'package:womenconnect/user/bookappointment.dart';
+import 'package:womenconnect/user/homescreen.dart';
 import 'package:womenconnect/user/notification.dart';
 import 'package:womenconnect/user/user%20profile.dart';
 import 'package:womenconnect/user/viewproducts.dart';
@@ -74,13 +75,5 @@ class _UserHomePageState extends State<UserHomePage> {
         ],
       ),
     );
-  }
-}
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
   }
 }

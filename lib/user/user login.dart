@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
             _passwordController.text.trim() == adminPassword) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => AdminHomePage()),
+            MaterialPageRoute(builder: (context) => AdminHomeScreen()),
           );
           return;
         }

@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:womenconnect/seller/addproduct.dart';
 import 'package:womenconnect/seller/vieworder.dart';
-import 'package:womenconnect/user/user%20login.dart';
+import 'package:womenconnect/seller/sellerprofile.dart';
 
 class SellerHomePage extends StatefulWidget {
   const SellerHomePage({super.key});
@@ -18,6 +18,9 @@ class _SellerHomePageState extends State<SellerHomePage> {
   String sellerName = "";
   String sellerEmail = "";
 
+  int _selectedIndex = 0;
+  late List<Widget> _pages;
+
   @override
   void initState() {
     super.initState();
@@ -28,99 +31,101 @@ class _SellerHomePageState extends State<SellerHomePage> {
     user = _auth.currentUser;
     if (user != null) {
       DocumentSnapshot sellerData =
-          await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+          await FirebaseFirestore.instance.collection('sellers').doc(user!.uid).get();
       
       setState(() {
         sellerName = sellerData['name'] ?? "Seller";
         sellerEmail = sellerData['email'] ?? "No Email";
+        _pages = [
+          _buildHomeScreen(),
+          SellerProfilePage(sellerName: sellerName, sellerEmail: sellerEmail),
+          AddProductScreen(),
+          SellerOrdersScreen(),
+        ];
       });
     }
-  }
-
-  void _logout() async {
-    await _auth.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Seller Dashboard"),
-        backgroundColor: Colors.deepOrange,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
+      body: _pages.isNotEmpty ? _pages[_selectedIndex] : const Center(child: CircularProgressIndicator()),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        backgroundColor: Colors.deepOrangeAccent,
+        type: BottomNavigationBarType.fixed,
+        elevation: 10,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: "Add Product"),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Orders"),
+        ],
+      ),
+    );
+  }
+
+  // Seller Dashboard Home Screen
+  Widget _buildHomeScreen() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Seller Profile Info
+          Card(
+            elevation: 5,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            child: ListTile(
+              leading: const Icon(Icons.store, size: 40, color: Colors.deepOrange),
+              title: Text(sellerName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              subtitle: Text(sellerEmail, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Grid Menu for Quick Actions
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            children: [
+              _buildQuickActionCard(Icons.add_box, "Add Product", 2),
+              _buildQuickActionCard(Icons.shopping_cart, "Orders", 3),
+              _buildQuickActionCard(Icons.person, "Profile", 1),
+            ],
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+    );
+  }
+
+  // Quick Access Cards for Dashboard
+  Widget _buildQuickActionCard(IconData icon, String title, int index) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Seller Profile Info
-            Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              child: ListTile(
-                leading: const Icon(Icons.person, size: 40, color: Colors.deepOrange),
-                title: Text(sellerName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                subtitle: Text(sellerEmail, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Add Product Button
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AddProductScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text("Add Product", style: TextStyle(fontSize: 18, color: Colors.white)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // View Orders Button
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ViewOrdersScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.shopping_cart, color: Colors.white),
-                  SizedBox(width: 10),
-                  Text("View Orders", style: TextStyle(fontSize: 18, color: Colors.white)),
-                ],
-              ),
-            ),
+            Icon(icon, size: 40, color: Colors.deepOrangeAccent),
+            const SizedBox(height: 10),
+            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
