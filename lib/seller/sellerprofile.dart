@@ -3,9 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:womenconnect/seller/edit_sellerprofile.dart';
 import 'package:womenconnect/user/choosescreen.dart';
-
+import 'package:womenconnect/seller/edit_sellerprofile.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class SellerProfilePage extends StatefulWidget {
   @override
@@ -15,11 +15,13 @@ class SellerProfilePage extends StatefulWidget {
 class _SellerProfilePageState extends State<SellerProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
 
   User? _user;
   Map<String, dynamic>? _sellerData;
   File? _image;
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -32,19 +34,47 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     if (_user != null) {
       DocumentSnapshot sellerDoc =
           await _firestore.collection('sellers').doc(_user!.uid).get();
-      setState(() {
-        _sellerData = sellerDoc.data() as Map<String, dynamic>?;
-      });
+      if (sellerDoc.exists) {
+        setState(() {
+          _sellerData = sellerDoc.data() as Map<String, dynamic>?;
+          _profileImageUrl = _sellerData?["profileImage"] ?? "";
+        });
+      }
     }
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickAndUploadImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      File imageFile = File(pickedFile.path);
       setState(() {
-        _image = File(pickedFile.path);
+        _image = imageFile;
       });
-      // Upload image logic goes here
+
+      try {
+        // Upload to Firebase Storage
+        Reference ref = _storage.ref().child('seller_profiles/${_user!.uid}.jpg');
+        UploadTask uploadTask = ref.putFile(imageFile);
+        TaskSnapshot taskSnapshot = await uploadTask;
+        String imageUrl = await taskSnapshot.ref.getDownloadURL();
+
+        // Update Firestore
+        await _firestore.collection('sellers').doc(_user!.uid).update({
+          'profileImage': imageUrl,
+        });
+
+        setState(() {
+          _profileImageUrl = imageUrl;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile image updated successfully!")),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error uploading image: $e")),
+        );
+      }
     }
   }
 
@@ -54,7 +84,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
       context,
       MaterialPageRoute(builder: (context) => ChooseScreen()),
       (route) => false,
-    ); // Navigate to login screen
+    );
   }
 
   @override
@@ -72,18 +102,16 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Profile Image Picker
+                  // Profile Image Upload
                   GestureDetector(
-                    onTap: _pickImage,
+                    onTap: _pickAndUploadImage,
                     child: CircleAvatar(
                       radius: 70,
                       backgroundColor: Colors.blueGrey[200],
-                      backgroundImage: _image != null
-                          ? FileImage(_image!)
-                          : (_sellerData!["profileImage"] != null
-                              ? NetworkImage(_sellerData!["profileImage"])
-                              : const AssetImage("assets/default_avatar.png")) as ImageProvider,
-                      child: _image == null
+                      backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                          ? NetworkImage(_profileImageUrl!)
+                          : const AssetImage("assets/default_avatar.png") as ImageProvider,
+                      child: _image == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty)
                           ? const Icon(Icons.camera_alt, size: 30, color: Colors.white)
                           : null,
                     ),

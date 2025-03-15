@@ -10,6 +10,7 @@ import 'package:womenconnect/professional/professional%20signup%20screen.dart' a
 import 'package:womenconnect/seller/addproduct.dart';
 import 'package:womenconnect/seller/seller%20homepage.dart';
 import 'package:womenconnect/seller/seller%20signup%20screen.dart';
+import 'package:womenconnect/seller/sellerprofile.dart';
 import 'package:womenconnect/seller/vieworder.dart';
 import 'package:womenconnect/splashscreen.dart';
 import 'package:womenconnect/user/buyproduct.dart';
@@ -63,7 +64,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home:SellerHomePage(),
+      home:AdminHomeScreen(),
     );
   }
 }
