@@ -1,27 +1,28 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class ProfessionalForgotPasswordScreen extends StatefulWidget {
-  const ProfessionalForgotPasswordScreen({super.key});
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
 
   @override
-  State<ProfessionalForgotPasswordScreen> createState() =>
-      _ProfessionalForgotPasswordScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ProfessionalForgotPasswordScreenState
-    extends State<ProfessionalForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isLoading = false;
+  String _selectedRole = 'User';
 
   void _resetPassword() async {
     final email = _emailController.text.trim();
 
-    if (email.isEmpty) {
-      _showSnackBar("Please enter your email");
+    if (email.isEmpty || !_isValidEmail(email)) {
+      _showSnackBar("Please enter a valid email address");
       return;
     }
+
+    FocusScope.of(context).unfocus(); // Hide keyboard
 
     setState(() {
       _isLoading = true;
@@ -29,7 +30,7 @@ class _ProfessionalForgotPasswordScreenState
 
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      _showSnackBar("Password reset link sent to your email");
+      _showSuccessDialog("Password reset link sent to $email ($_selectedRole)");
     } on FirebaseAuthException catch (e) {
       _showSnackBar(e.message ?? "An error occurred");
     } catch (e) {
@@ -41,9 +42,30 @@ class _ProfessionalForgotPasswordScreenState
     });
   }
 
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}");
+    return emailRegex.hasMatch(email);
+  }
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
+    );
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Success"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
     );
   }
 
@@ -55,18 +77,17 @@ class _ProfessionalForgotPasswordScreenState
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          "Professional Forgot Password",
+          "Forgot Password",
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          // Background Gradient
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.shade900, Colors.blue.shade400], // Blue Theme
+                colors: [Colors.blue.shade800, Colors.lightBlue.shade400],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -79,7 +100,7 @@ class _ProfessionalForgotPasswordScreenState
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    "Reset Professional Password",
+                    "Reset Your Password",
                     style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -87,23 +108,56 @@ class _ProfessionalForgotPasswordScreenState
                   ),
                   const SizedBox(height: 20),
 
-                  // Email Field
                   _buildTextField(
                     controller: _emailController,
-                    label: "Professional Email",
-                    hintText: "Enter your registered professional email",
+                    label: "Email",
+                    hintText: "Enter your registered email",
                     icon: Icons.email,
                     keyboardType: TextInputType.emailAddress,
+                    autoFocus: true,
                   ),
                   const SizedBox(height: 20),
 
-                  // Reset Password Button
+                  // Role Selection Dropdown
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedRole,
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          _selectedRole = newValue!;
+                        });
+                      },
+                      isExpanded: true,
+                      underline: Container(),
+                      items: ["User", "Admin", "Seller", "Professional"]
+                          .map<DropdownMenuItem<String>>(
+                              (role) => DropdownMenuItem<String>(
+                                    value: role,
+                                    child: Text(role),
+                                  ))
+                          .toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   ElevatedButton(
                     onPressed: _isLoading ? null : _resetPassword,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           vertical: 16, horizontal: 50),
-                      backgroundColor: Colors.blueAccent,
+                      backgroundColor: Colors.deepOrange,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
@@ -131,6 +185,7 @@ class _ProfessionalForgotPasswordScreenState
     required IconData icon,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
+    bool autoFocus = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -147,12 +202,13 @@ class _ProfessionalForgotPasswordScreenState
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        autofocus: autoFocus,
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          prefixIcon: Icon(icon, color: Colors.deepOrange),
           labelText: label,
           hintText: hintText,
           hintStyle: TextStyle(color: Colors.grey[600]),
-          labelStyle: const TextStyle(color: Colors.blueAccent),
+          labelStyle: const TextStyle(color: Colors.deepOrange),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(

@@ -7,75 +7,36 @@ class ManageProfessionalsScreen extends StatefulWidget {
 }
 
 class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String _searchQuery = "";
+  final CollectionReference professionalsCollection =
+      FirebaseFirestore.instance.collection('professionals');
 
-  void _updateApproval(String proId, bool isApproved) async {
-    await _firestore.collection('professionals').doc(proId).update({'approved': isApproved});
+  void _deleteProfessional(String id) {
+    professionalsCollection.doc(id).delete();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(isApproved ? "Professional approved" : "Professional rejected")),
+      SnackBar(content: Text('Professional deleted successfully')),
     );
   }
 
-  void _editProfessional(BuildContext context, DocumentSnapshot professional) {
-    TextEditingController nameController = TextEditingController(text: professional['name'] ?? '');
-    TextEditingController emailController = TextEditingController(text: professional['email'] ?? '');
-    TextEditingController qualificationController = TextEditingController(text: professional['qualification'] ?? '');
-    TextEditingController contactController = TextEditingController(text: professional['contactNumber'] ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Edit Professional"),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildTextField("Name", nameController),
-                _buildTextField("Email", emailController, readOnly: true),
-                _buildTextField("Qualification", qualificationController),
-                _buildTextField("Contact", contactController),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _firestore.collection('professionals').doc(professional.id).update({
-                  "name": nameController.text.trim(),
-                  "qualification": qualificationController.text.trim(),
-                  "contactNumber": contactController.text.trim(),
-                });
-
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Professional details updated!")),
-                );
-              },
-              child: const Text("Save"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller, {bool readOnly = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextField(
-        controller: controller,
-        readOnly: readOnly,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(),
-        ),
+  void _updateProfessional(DocumentSnapshot professional) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UpdateProfessionalScreen(professional: professional),
       ),
+    );
+  }
+
+  void _approveProfessional(String id) {
+    professionalsCollection.doc(id).update({'approved': true});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Professional approved successfully')),
+    );
+  }
+
+  void _rejectProfessional(String id) {
+    professionalsCollection.doc(id).update({'approved': false});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Professional rejected')),
     );
   }
 
@@ -83,121 +44,164 @@ class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Manage Professionals"),
+        title: Text('Manage Professionals'),
         backgroundColor: Colors.deepOrangeAccent,
       ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Search professionals...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+      body: StreamBuilder<QuerySnapshot>(
+        stream: professionalsCollection.snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text("No professionals found"));
+          }
+
+          var professionals = snapshot.data!.docs;
+
+          return ListView.builder(
+            itemCount: professionals.length,
+            itemBuilder: (context, index) {
+              var professional = professionals[index].data() as Map<String, dynamic>;
+              var docId = professionals[index].id;
+              bool isApproved = professional['approved'] ?? false;
+
+              return Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-            ),
-          ),
-
-          // Professionals List
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('professionals').snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-                final professionals = snapshot.data!.docs.where((pro) {
-                  final name = pro.data().toString().contains('name') ? pro['name'].toLowerCase() : "";
-                  final qualification = pro.data().toString().contains('qualification') ? pro['qualification'].toLowerCase() : "";
-                  return name.contains(_searchQuery) || qualification.contains(_searchQuery);
-                }).toList();
-
-                if (professionals.isEmpty) {
-                  return const Center(child: Text("No professionals found."));
-                }
-
-                return ListView.builder(
-                  itemCount: professionals.length,
-                  itemBuilder: (context, index) {
-                    var pro = professionals[index];
-
-                    // Handling missing fields to prevent crashes
-                    String name = pro.data().toString().contains('name') ? pro['name'] : "No Name";
-                    String qualification = pro.data().toString().contains('qualification') ? pro['qualification'] : "N/A";
-                    String contact = pro.data().toString().contains('contactNumber') ? pro['contactNumber'] : "N/A";
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      elevation: 5,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12),
-                        leading: CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.deepOrangeAccent,
-                          child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
-                        title: Text(
-                          name,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Qualification: $qualification"),
-                            Text("📞 Contact: $contact"),
-                            pro['approved'] == true
-                                ? const Text("✅ Approved", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
-                                : const Text("❌ Pending Approval", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (String result) {
-                            if (result == 'approve') {
-                              _updateApproval(pro.id, true);
-                            } else if (result == 'reject') {
-                              _updateApproval(pro.id, false);
-                            } else if (result == 'edit') {
-                              _editProfessional(context, pro);
-                            }
-                          },
-                          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                            const PopupMenuItem<String>(
-                              value: 'approve',
-                              child: ListTile(leading: Icon(Icons.check, color: Colors.green), title: Text('Approve')),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'reject',
-                              child: ListTile(leading: Icon(Icons.close, color: Colors.red), title: Text('Reject')),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'edit',
-                              child: ListTile(leading: Icon(Icons.edit, color: Colors.blue), title: Text('Edit')),
-                            ),
-                          ],
-                        ),
+                elevation: 5,
+                margin: EdgeInsets.symmetric(vertical: 10),
+                child: ListTile(
+                  leading: Icon(
+                    Icons.person,
+                    color: isApproved ? Colors.green : Colors.deepOrangeAccent,
+                  ),
+                  title: Text(
+                    professional['name'] ?? 'Unknown',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Specialization: ${professional['specialization'] ?? 'N/A'}'),
+                      Text('Experience: ${professional['experience'] ?? 'N/A'} years'),
+                      Text('Phone: ${professional['contactNumber'] ?? 'N/A'}'),
+                      Text('Email: ${professional['email'] ?? 'N/A'}'),
+                      Text('Availability: ${professional['availability'] ?? 'N/A'}'),
+                      Text('Status: ${isApproved ? 'Approved' : 'Pending'}'),
+                    ],
+                  ),
+                  trailing: Wrap(
+                    spacing: 12,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.edit, color: Colors.deepOrangeAccent),
+                        onPressed: () => _updateProfessional(professionals[index]),
                       ),
-                    );
-                  },
-                );
-              },
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteProfessional(docId),
+                      ),
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'approve') {
+                            _approveProfessional(docId);
+                          } else if (value == 'reject') {
+                            _rejectProfessional(docId);
+                          }
+                        },
+                        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                          PopupMenuItem<String>(
+                            value: 'approve',
+                            child: Text('Approve'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'reject',
+                            child: Text('Reject'),
+                          ),
+                        ],
+                        icon: Icon(Icons.more_vert, color: Colors.deepOrangeAccent),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class UpdateProfessionalScreen extends StatefulWidget {
+  final DocumentSnapshot professional;
+
+  UpdateProfessionalScreen({required this.professional});
+
+  @override
+  _UpdateProfessionalScreenState createState() => _UpdateProfessionalScreenState();
+}
+
+class _UpdateProfessionalScreenState extends State<UpdateProfessionalScreen> {
+  late TextEditingController _nameController;
+  late TextEditingController _specializationController;
+  late TextEditingController _experienceController;
+  late TextEditingController _emailController;
+  late TextEditingController _contactNumberController;
+  late TextEditingController _availabilityController;
+
+  @override
+  void initState() {
+    super.initState();
+    var data = widget.professional.data() as Map<String, dynamic>;
+    _nameController = TextEditingController(text: data['name']);
+    _specializationController = TextEditingController(text: data['specialization']);
+    _experienceController = TextEditingController(text: data['experience']);
+    _emailController = TextEditingController(text: data['email']);
+    _contactNumberController = TextEditingController(text: data['contactNumber']);
+    _availabilityController = TextEditingController(text: data['availability']);
+  }
+
+  void _updateProfessional() {
+    widget.professional.reference.update({
+      'name': _nameController.text,
+      'specialization': _specializationController.text,
+      'experience': _experienceController.text,
+      'email': _emailController.text,
+      'contactNumber': _contactNumberController.text,
+      'availability': _availabilityController.text,
+    });
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Update Professional'),
+        backgroundColor: Colors.deepOrangeAccent,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(controller: _nameController, decoration: InputDecoration(labelText: 'Name')),
+            TextField(controller: _specializationController, decoration: InputDecoration(labelText: 'Specialization')),
+            TextField(controller: _experienceController, decoration: InputDecoration(labelText: 'Experience')),
+            TextField(controller: _emailController, decoration: InputDecoration(labelText: 'Email')),
+            TextField(controller: _contactNumberController, decoration: InputDecoration(labelText: 'Phone')),
+            TextField(controller: _availabilityController, decoration: InputDecoration(labelText: 'Availability')),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _updateProfessional,
+              child: Text('Update Professional'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrangeAccent),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
