@@ -10,10 +10,28 @@ class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
   final CollectionReference professionalsCollection =
       FirebaseFirestore.instance.collection('professionals');
 
-  void _deleteProfessional(String id) {
-    professionalsCollection.doc(id).delete();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Professional deleted successfully')),
+  // ✅ Confirm before deleting a professional
+  void _confirmDeleteProfessional(String id) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Professional?"),
+        content: Text("Are you sure you want to delete this professional?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              await professionalsCollection.doc(id).delete();
+              Navigator.pop(context);
+              _showSnackBar("Professional deleted successfully");
+            },
+            child: Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -26,18 +44,18 @@ class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
     );
   }
 
-  void _approveProfessional(String id) {
-    professionalsCollection.doc(id).update({'approved': true});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Professional approved successfully')),
-    );
+  void _approveProfessional(String id) async {
+    await professionalsCollection.doc(id).update({'approved': true});
+    _showSnackBar("Professional approved successfully");
   }
 
-  void _rejectProfessional(String id) {
-    professionalsCollection.doc(id).update({'approved': false});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Professional rejected')),
-    );
+  void _rejectProfessional(String id) async {
+    await professionalsCollection.doc(id).update({'approved': false});
+    _showSnackBar("Professional rejected");
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -62,33 +80,28 @@ class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
           return ListView.builder(
             itemCount: professionals.length,
             itemBuilder: (context, index) {
-              var professional = professionals[index].data() as Map<String, dynamic>;
+              var professionalData = professionals[index].data() as Map<String, dynamic>;
               var docId = professionals[index].id;
-              bool isApproved = professional['approved'] ?? false;
+              bool isApproved = professionalData['approved'] ?? false;
 
               return Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 elevation: 5,
-                margin: EdgeInsets.symmetric(vertical: 10),
+                margin: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                 child: ListTile(
-                  leading: Icon(
-                    Icons.person,
-                    color: isApproved ? Colors.green : Colors.deepOrangeAccent,
-                  ),
+                  leading: Icon(Icons.person, color: isApproved ? Colors.green : Colors.deepOrangeAccent),
                   title: Text(
-                    professional['name'] ?? 'Unknown',
+                    professionalData['name'] ?? 'Unknown',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Specialization: ${professional['specialization'] ?? 'N/A'}'),
-                      Text('Experience: ${professional['experience'] ?? 'N/A'} years'),
-                      Text('Phone: ${professional['contactNumber'] ?? 'N/A'}'),
-                      Text('Email: ${professional['email'] ?? 'N/A'}'),
-                      Text('Availability: ${professional['availability'] ?? 'N/A'}'),
+                      Text('Specialization: ${professionalData['specialization'] ?? 'N/A'}'),
+                      Text('Experience: ${professionalData['experience'] ?? '0'} years'),
+                      Text('Phone: ${professionalData['contactNumber'] ?? 'N/A'}'),
+                      Text('Email: ${professionalData['email'] ?? 'N/A'}'),
+                      Text('Availability: ${professionalData['availability'] ?? 'N/A'}'),
                       Text('Status: ${isApproved ? 'Approved' : 'Pending'}'),
                     ],
                   ),
@@ -101,7 +114,7 @@ class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
                       ),
                       IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteProfessional(docId),
+                        onPressed: () => _confirmDeleteProfessional(docId),
                       ),
                       PopupMenuButton<String>(
                         onSelected: (value) {
@@ -111,15 +124,9 @@ class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
                             _rejectProfessional(docId);
                           }
                         },
-                        itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                          PopupMenuItem<String>(
-                            value: 'approve',
-                            child: Text('Approve'),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'reject',
-                            child: Text('Reject'),
-                          ),
+                        itemBuilder: (context) => [
+                          PopupMenuItem(value: 'approve', child: Text('Approve')),
+                          PopupMenuItem(value: 'reject', child: Text('Reject')),
                         ],
                         icon: Icon(Icons.more_vert, color: Colors.deepOrangeAccent),
                       ),
@@ -156,41 +163,40 @@ class _UpdateProfessionalScreenState extends State<UpdateProfessionalScreen> {
   void initState() {
     super.initState();
     var data = widget.professional.data() as Map<String, dynamic>;
-    _nameController = TextEditingController(text: data['name']);
-    _specializationController = TextEditingController(text: data['specialization']);
-    _experienceController = TextEditingController(text: data['experience']);
-    _emailController = TextEditingController(text: data['email']);
-    _contactNumberController = TextEditingController(text: data['contactNumber']);
-    _availabilityController = TextEditingController(text: data['availability']);
+
+    _nameController = TextEditingController(text: data['name'] ?? '');
+    _specializationController = TextEditingController(text: data['specialization'] ?? '');
+    _experienceController = TextEditingController(text: data['experience']?.toString() ?? '0');
+    _emailController = TextEditingController(text: data['email'] ?? '');
+    _contactNumberController = TextEditingController(text: data['contactNumber'] ?? '');
+    _availabilityController = TextEditingController(text: data['availability'] ?? '');
   }
 
-  void _updateProfessional() {
-    widget.professional.reference.update({
+  void _updateProfessional() async {
+    await widget.professional.reference.update({
       'name': _nameController.text,
       'specialization': _specializationController.text,
-      'experience': _experienceController.text,
+      'experience': int.tryParse(_experienceController.text) ?? 0,
       'email': _emailController.text,
       'contactNumber': _contactNumberController.text,
       'availability': _availabilityController.text,
     });
+
     Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Professional details updated!")));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Update Professional'),
-        backgroundColor: Colors.deepOrangeAccent,
-      ),
+      appBar: AppBar(title: Text('Update Professional'), backgroundColor: Colors.deepOrangeAccent),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(controller: _nameController, decoration: InputDecoration(labelText: 'Name')),
             TextField(controller: _specializationController, decoration: InputDecoration(labelText: 'Specialization')),
-            TextField(controller: _experienceController, decoration: InputDecoration(labelText: 'Experience')),
+            TextField(controller: _experienceController, decoration: InputDecoration(labelText: 'Experience'), keyboardType: TextInputType.number),
             TextField(controller: _emailController, decoration: InputDecoration(labelText: 'Email')),
             TextField(controller: _contactNumberController, decoration: InputDecoration(labelText: 'Phone')),
             TextField(controller: _availabilityController, decoration: InputDecoration(labelText: 'Availability')),

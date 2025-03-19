@@ -7,8 +7,6 @@ import 'package:womenconnect/seller/seller%20homepage.dart';
 import 'package:womenconnect/user/forgotpassword_screen.dart';
 import 'package:womenconnect/user/userhomepage.dart';
 
-
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -32,8 +30,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      // Check if admin credentials are used
-      if (email == "admin@gmail.com" && password == "admin123") {
+      // ✅ Admin login
+      if (email == "riya@gmail.com" && password == "riya123") {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => AdminHomeScreen()),
@@ -41,64 +39,69 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // Sign in with Firebase Authentication
+      // ✅ Firebase authentication
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+      String userId = userCredential.user!.uid;
 
-      // Fetch user role from Firestore
-      String userRole = await _fetchUserRole(userCredential.user!.uid);
+      // ✅ Fetch user role from Firestore
+      String? role = await _fetchUserRole(userId);
 
-      switch (userRole) {
-        case 'user':
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => UserHomePage()),
-          );
-          break;
-        case 'seller':
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => SellerHomePage()),
-          );
-          break;
-        case 'professional':
-          bool isApproved = await _checkProfessionalApproval(userCredential.user!.uid);
-          if (isApproved) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => DoctorHomePage()),
-            );
-          } else {
-            _showSnackBar("Your account is not approved yet. Please contact support.");
-          }
-          break;
-        default:
-          _showSnackBar("Unknown role. Please contact support.");
+      if (role == "user") {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => UserHomePage()));
+      } else if (role == "seller") {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SellerHomePage()));
+      } else if (role == "professional") {
+        bool isApproved = await _checkProfessionalApproval(userId);
+        if (isApproved) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DoctorHomePage()));
+        } else {
+          _showSnackBar("Your account is not approved yet. Please contact support.");
+        }
+      } else {
+        _showSnackBar("Unknown role. Please contact support.");
       }
     } on FirebaseAuthException catch (e) {
-      _showSnackBar(e.message ?? "An error occurred");
+      _showSnackBar(e.message ?? "Login failed. Please try again.");
     } catch (e) {
-      _showSnackBar("An unexpected error occurred");
+      _showSnackBar("An unexpected error occurred.");
     }
   }
 
-  Future<String> _fetchUserRole(String userId) async {
-    DocumentSnapshot userDoc =
+  // ✅ Fetch role from Firestore
+  Future<String?> _fetchUserRole(String userId) async {
+    DocumentSnapshot<Map<String, dynamic>> userDoc =
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    return userDoc.exists ? userDoc['role'] : "user";
+    if (userDoc.exists) {
+      return userDoc.data()?['role'];
+    }
+
+    DocumentSnapshot<Map<String, dynamic>> sellerDoc =
+        await FirebaseFirestore.instance.collection('sellers').doc(userId).get();
+    if (sellerDoc.exists) {
+      return "seller";
+    }
+
+    DocumentSnapshot<Map<String, dynamic>> professionalDoc =
+        await FirebaseFirestore.instance.collection('professionals').doc(userId).get();
+    if (professionalDoc.exists) {
+      return "professional";
+    }
+
+    return null;
   }
 
+  // ✅ Check if professional is approved
   Future<bool> _checkProfessionalApproval(String professionalId) async {
-    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('professionals').doc(professionalId).get();
-    return doc.exists ? doc['approved'] ?? false : false;
+    DocumentSnapshot<Map<String, dynamic>> doc =
+        await FirebaseFirestore.instance.collection('professionals').doc(professionalId).get();
+    return doc.exists ? (doc.data() != null ? doc.data()!['approved'] : false) : false;
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

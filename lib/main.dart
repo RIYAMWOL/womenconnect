@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:womenconnect/admin/adminhome.dart';
 import 'package:womenconnect/admin/manageprofessionals.dart';
+import 'package:womenconnect/admin/managesellers.dart';
 import 'package:womenconnect/admin/userlistscreen.dart';
 import 'package:womenconnect/firebase_options.dart';
 import 'package:womenconnect/professional/professional%20signup%20screen.dart' as professional_signup;
@@ -62,7 +63,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home:LoginScreen (),
+      home: ManageSellersScreen (),
     );
   }
 }
