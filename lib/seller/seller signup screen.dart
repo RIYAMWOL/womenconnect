@@ -19,6 +19,7 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _shopNameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -102,6 +103,7 @@ String? profileImageUrl = await _uploadProfileImage();
       await _firestore.collection('sellers').doc(userCredential.user!.uid).set({
         "name": _nameController.text.trim(),
         "email": _emailController.text.trim(),
+        "shopName": _shopNameController.text.trim(),
         "phone": _phoneController.text.trim(),
         "dob": _dobController.text.trim(),
         'profileImage': profileImageUrl,
@@ -164,6 +166,12 @@ String? profileImageUrl = await _uploadProfileImage();
                     value!.contains("@") ? null : "Enter a valid email",
               ),
               const SizedBox(height: 12),
+TextFormField( 
+  controller: _shopNameController,
+  decoration: const InputDecoration(labelText: "Shop Name", border: OutlineInputBorder()),
+  validator: (value) => value!.isEmpty ? "Enter your shop name" : null,
+),
+const SizedBox(height: 12),
 
               TextFormField(
                 controller: _passwordController,

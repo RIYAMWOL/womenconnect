@@ -10,18 +10,18 @@ class _ManageSellersScreenState extends State<ManageSellersScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _searchQuery = "";
 
-  void _updateSellerApproval(String sellerId, bool isApproved) async {
-    await _firestore.collection('Sellers').doc(sellerId).update({'approved': isApproved});
+  void _updateApproval(String sellerId, bool isApproved) async {
+    await _firestore.collection('sellers').doc(sellerId).update({'approved': isApproved});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(isApproved ? "Seller approved" : "Seller rejected")),
     );
   }
 
   void _editSeller(BuildContext context, DocumentSnapshot seller) {
-    TextEditingController nameController = TextEditingController(text: seller['name']);
-    TextEditingController emailController = TextEditingController(text: seller['email']);
-    TextEditingController phoneController = TextEditingController(text: seller['phone']);
-    TextEditingController shopNameController = TextEditingController(text: seller['shopName']);
+    TextEditingController nameController = TextEditingController(text: seller['name'] ?? '');
+    TextEditingController emailController = TextEditingController(text: seller['email'] ?? '');
+    TextEditingController shopNameController = TextEditingController(text: seller['shopName'] ?? '');
+    TextEditingController contactController = TextEditingController(text: seller['contactNumber'] ?? '');
 
     showDialog(
       context: context,
@@ -34,8 +34,8 @@ class _ManageSellersScreenState extends State<ManageSellersScreen> {
               children: [
                 _buildTextField("Name", nameController),
                 _buildTextField("Email", emailController, readOnly: true),
-                _buildTextField("Phone", phoneController),
                 _buildTextField("Shop Name", shopNameController),
+                _buildTextField("Contact", contactController),
               ],
             ),
           ),
@@ -46,10 +46,10 @@ class _ManageSellersScreenState extends State<ManageSellersScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                await _firestore.collection('Sellers').doc(seller.id).update({
+                await _firestore.collection('sellers').doc(seller.id).update({
                   "name": nameController.text.trim(),
-                  "phone": phoneController.text.trim(),
                   "shopName": shopNameController.text.trim(),
+                  "contactNumber": contactController.text.trim(),
                 });
 
                 Navigator.pop(context);
@@ -113,13 +113,13 @@ class _ManageSellersScreenState extends State<ManageSellersScreen> {
           // Sellers List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('Sellers').snapshots(),
+              stream: _firestore.collection('sellers').snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                 final sellers = snapshot.data!.docs.where((seller) {
-                  final name = seller['name']?.toLowerCase() ?? "";
-                  final shopName = seller['shopName']?.toLowerCase() ?? "";
+                  final name = seller.data().toString().contains('name') ? seller['name'].toLowerCase() : "";
+                  final shopName = seller.data().toString().contains('shopName') ? seller['shopName'].toLowerCase() : "";
                   return name.contains(_searchQuery) || shopName.contains(_searchQuery);
                 }).toList();
 
@@ -132,42 +132,45 @@ class _ManageSellersScreenState extends State<ManageSellersScreen> {
                   itemBuilder: (context, index) {
                     var seller = sellers[index];
 
+                    // Handling missing fields to prevent crashes
+                    String name = seller.data().toString().contains('name') ? seller['name'] : "No Name";
+                    String shopName = seller.data().toString().contains('shopName') ? seller['shopName'] : "N/A";
+                    String contact = seller.data().toString().contains('contactNumber') ? seller['contactNumber'] : "N/A";
+
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       elevation: 5,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(12),
                         leading: CircleAvatar(
                           radius: 30,
                           backgroundColor: Colors.deepOrangeAccent,
                           child: Text(
-                            seller['name']?[0] ?? '?',
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
                             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                         ),
                         title: Text(
-                          seller['name'] ?? 'No Name',
+                          name,
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Shop: ${seller['shopName'] ?? 'N/A'}"),
-                            Text("Phone: ${seller['phone'] ?? 'N/A'}"),
+                            Text("Shop: $shopName"),
+                            Text("📞 Contact: $contact"),
                             seller['approved'] == true
-                                ? const Text("Approved", style: TextStyle(color: Colors.green))
-                                : const Text("Pending Approval", style: TextStyle(color: Colors.red)),
+                                ? const Text("✅ Approved", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))
+                                : const Text("❌ Pending Approval", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                           ],
                         ),
                         trailing: PopupMenuButton<String>(
                           onSelected: (String result) {
                             if (result == 'approve') {
-                              _updateSellerApproval(seller.id, true);
+                              _updateApproval(seller.id, true);
                             } else if (result == 'reject') {
-                              _updateSellerApproval(seller.id, false);
+                              _updateApproval(seller.id, false);
                             } else if (result == 'edit') {
                               _editSeller(context, seller);
                             }
@@ -175,24 +178,15 @@ class _ManageSellersScreenState extends State<ManageSellersScreen> {
                           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                             const PopupMenuItem<String>(
                               value: 'approve',
-                              child: ListTile(
-                                leading: Icon(Icons.check, color: Colors.green),
-                                title: Text('Approve'),
-                              ),
+                              child: ListTile(leading: Icon(Icons.check, color: Colors.green), title: Text('Approve')),
                             ),
                             const PopupMenuItem<String>(
                               value: 'reject',
-                              child: ListTile(
-                                leading: Icon(Icons.close, color: Colors.red),
-                                title: Text('Reject'),
-                              ),
+                              child: ListTile(leading: Icon(Icons.close, color: Colors.red), title: Text('Reject')),
                             ),
                             const PopupMenuItem<String>(
                               value: 'edit',
-                              child: ListTile(
-                                leading: Icon(Icons.edit, color: Colors.blue),
-                                title: Text('Edit'),
-                              ),
+                              child: ListTile(leading: Icon(Icons.edit, color: Colors.blue), title: Text('Edit')),
                             ),
                           ],
                         ),

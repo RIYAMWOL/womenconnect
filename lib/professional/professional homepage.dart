@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:womenconnect/professional/professionalprofile.dart';
 
 class DoctorHomePage extends StatefulWidget {
   const DoctorHomePage({super.key});
@@ -13,7 +14,7 @@ class _DoctorHomePageState extends State<DoctorHomePage> {
   // List of pages corresponding to each navigation tab
   final List<Widget> _pages = [
     DoctorDashboard(), // Updated doctor dashboard
-    Center(child: Text("Profile Page", style: TextStyle(fontSize: 20))),
+    ProfessionalProfileScreen(),
     Center(child: Text("Appointments Page", style: TextStyle(fontSize: 20))),
     Center(child: Text("Prescriptions Page", style: TextStyle(fontSize: 20))),
     Center(child: Text("Reports & Records Page", style: TextStyle(fontSize: 20))),
