@@ -7,7 +7,6 @@ import 'package:womenconnect/seller/seller%20homepage.dart';
 import 'package:womenconnect/user/forgotpage.dart';
 import 'package:womenconnect/user/userhomepage.dart';
 
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -28,109 +27,143 @@ class _LoginScreenState extends State<LoginScreen> {
   final String adminPassword = "Admin@123";
 
   void _loginUser() async {
-  if (_formKey.currentState!.validate()) {
-    try {
-      // Check if the credentials match admin login
-      if (_emailController.text.trim() == adminEmail &&
-          _passwordController.text.trim() == adminPassword) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AdminHomeScreen()),
-        );
-        return;
-      }
-
-      // Normal User Login via Firebase Auth
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      // Fetch User Role from Firestore
-      DocumentSnapshot userDoc = await _firestore
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .get();
-
-      if (userDoc.exists) {
-        String role = userDoc['role'];
-
-        // Check role & navigate accordingly
-        if (role == 'user') {
+    if (_formKey.currentState!.validate()) {
+      try {
+        // Check if the credentials match admin login
+        if (_emailController.text.trim() == adminEmail &&
+            _passwordController.text.trim() == adminPassword) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => UserHomePage()),
+            MaterialPageRoute(builder: (context) => AdminHomeScreen()),
           );
-        } 
-        // Professional (Doctor) role
-        else if (role == 'professional') {
+          return;
+        }
+
+        // Normal User Login via Firebase Auth
+        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+
+        // Fetch User Role from Firestore
+        DocumentSnapshot userDoc = await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          String role = userDoc['role'];
+
+          // Check role & navigate accordingly
+          if (role == 'user') {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => UserHomePage()),
+            );
+          } else if (role == 'professional') {
+            DocumentSnapshot profDoc = await _firestore
+                .collection('professionals')
+                .doc(userCredential.user!.uid)
+                .get();
+
+            if (profDoc.exists && profDoc['approved'] == true) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => DoctorHomePage()),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content:
+                        Text('Your professional account is not approved yet.')),
+              );
+              await _auth.signOut();
+            }
+          } else if (role == 'seller') {
+            DocumentSnapshot sellerDoc = await _firestore
+                .collection('sellers')
+                .doc(userCredential.user!.uid)
+                .get();
+
+            if (sellerDoc.exists && sellerDoc['approved'] == true) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SellerHomePage()),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Your seller account is not approved yet.')),
+              );
+              await _auth.signOut();
+            }
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Invalid role assigned. Contact support.')),
+            );
+          }
+        }
+// 👇 IF userDoc NOT found, check professionals and sellers directly
+        else {
+          // Check Professionals Collection
           DocumentSnapshot profDoc = await _firestore
               .collection('professionals')
               .doc(userCredential.user!.uid)
               .get();
 
-          if (profDoc.exists && profDoc['approved'] == true) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => DoctorHomePage()),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Your professional account is not approved yet.')),
-            );
-            await _auth.signOut(); // Optional: log them out
+          if (profDoc.exists) {
+            if (profDoc['approved'] == true) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => DoctorHomePage()),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content:
+                        Text('Your professional account is not approved yet.')),
+              );
+              await _auth.signOut();
+            }
+            return;
           }
-        } 
-        // Seller role
-        else if (role == 'seller') {
+
+          // Check Sellers Collection
           DocumentSnapshot sellerDoc = await _firestore
               .collection('sellers')
               .doc(userCredential.user!.uid)
               .get();
 
-          if (sellerDoc.exists && sellerDoc['approved'] == true) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => SellerHomePage()),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Your seller account is not approved yet.')),
-            );
-            await _auth.signOut(); // Optional: log them out
+          if (sellerDoc.exists) {
+            if (sellerDoc['approved'] == true) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => SellerHomePage()),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Your seller account is not approved yet.')),
+              );
+              await _auth.signOut();
+            }
+            return;
           }
-        } 
-        // Unknown role
-        else {
+
+          // If no records found
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid role assigned. Contact support.')),
+            const SnackBar(
+                content: Text('User data not found. Contact support.')),
           );
         }
-      } else {
+      } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User data not found. Contact support.')),
+          SnackBar(content: Text(e.message ?? "An error occurred")),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      if (e.code == 'user-not-found') {
-        errorMessage = 'No user found for this email.';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Incorrect password. Try again.';
-      } else {
-        errorMessage = 'An error occurred: ${e.message}';
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An unexpected error occurred: $e')),
-      );
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
