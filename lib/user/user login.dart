@@ -27,81 +27,110 @@ class _LoginScreenState extends State<LoginScreen> {
   final String adminEmail = "admin@womenconnect.com";
   final String adminPassword = "Admin@123";
 
-  // Login Function
   void _loginUser() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        // Check if the credentials match admin login
-        if (_emailController.text.trim() == adminEmail &&
-            _passwordController.text.trim() == adminPassword) {
+  if (_formKey.currentState!.validate()) {
+    try {
+      // Check if the credentials match admin login
+      if (_emailController.text.trim() == adminEmail &&
+          _passwordController.text.trim() == adminPassword) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => AdminHomeScreen()),
+        );
+        return;
+      }
+
+      // Normal User Login via Firebase Auth
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Fetch User Role from Firestore
+      DocumentSnapshot userDoc = await _firestore
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (userDoc.exists) {
+        String role = userDoc['role'];
+
+        // Check role & navigate accordingly
+        if (role == 'user') {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => AdminHomeScreen()),
+            MaterialPageRoute(builder: (context) => UserHomePage()),
           );
-          return;
-        }
+        } 
+        // Professional (Doctor) role
+        else if (role == 'professional') {
+          DocumentSnapshot profDoc = await _firestore
+              .collection('professionals')
+              .doc(userCredential.user!.uid)
+              .get();
 
-        // Normal User Login via Firebase Auth
-        UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-
-        // Fetch User Role from Firestore
-        DocumentSnapshot userDoc = await _firestore
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .get();
-
-        if (userDoc.exists) {
-          String role = userDoc['role'];
-
-          // Navigate based on role
-          if (role == 'user') {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => UserHomePage()),
-            );
-          } else if (role == 'professional') {
+          if (profDoc.exists && profDoc['approved'] == true) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => DoctorHomePage()),
             );
-          } else if (role == 'seller') {
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Your professional account is not approved yet.')),
+            );
+            await _auth.signOut(); // Optional: log them out
+          }
+        } 
+        // Seller role
+        else if (role == 'seller') {
+          DocumentSnapshot sellerDoc = await _firestore
+              .collection('sellers')
+              .doc(userCredential.user!.uid)
+              .get();
+
+          if (sellerDoc.exists && sellerDoc['approved'] == true) {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => SellerHomePage()),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Invalid role assigned. Contact support.')),
+              const SnackBar(content: Text('Your seller account is not approved yet.')),
             );
+            await _auth.signOut(); // Optional: log them out
           }
-        } else {
+        } 
+        // Unknown role
+        else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User data not found. Contact support.')),
+            const SnackBar(content: Text('Invalid role assigned. Contact support.')),
           );
         }
-      } on FirebaseAuthException catch (e) {
-        String errorMessage;
-        if (e.code == 'user-not-found') {
-          errorMessage = 'No user found for this email.';
-        } else if (e.code == 'wrong-password') {
-          errorMessage = 'Incorrect password. Try again.';
-        } else {
-          errorMessage = 'An error occurred: ${e.message}';
-        }
-
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An unexpected error occurred: $e')),
+          const SnackBar(content: Text('User data not found. Contact support.')),
         );
       }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found for this email.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Incorrect password. Try again.';
+      } else {
+        errorMessage = 'An error occurred: ${e.message}';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An unexpected error occurred: $e')),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

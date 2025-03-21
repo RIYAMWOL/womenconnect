@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfessionalSignupScreen extends StatefulWidget {
   const ProfessionalSignupScreen({super.key});
@@ -22,6 +26,51 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Uint8List? _profileImage;
+  final ImagePicker _picker = ImagePicker();
+
+ 
+ 
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      Uint8List imageBytes = await pickedFile.readAsBytes();
+      setState(() {
+        _profileImage = imageBytes;
+      });
+    } else {
+      _showSnackBar("No image selected");
+    }
+  }
+
+  // ☁ Upload Image to Cloudinary
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return null;
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/dqaitmb01/image/upload'),
+      );
+
+      request.fields['upload_preset'] = 'women_connect_images';
+      request.files.add(http.MultipartFile.fromBytes('file', _profileImage!, filename: 'profile.jpg'));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonData = jsonDecode(responseData);
+        return jsonData['secure_url'];
+      } else {
+        _showSnackBar("Image upload failed");
+        return null;
+      }
+    } catch (e) {
+      print("Cloudinary upload error: $e");
+      return null;
+    }
+  }
 
   void _signUpProfessional() async {
     final name = _nameController.text.trim();
@@ -52,7 +101,7 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
         email: email,
         password: password,
       );
-
+String? profileImageUrl = await _uploadProfileImage();
       // Get user ID
       final uid = userCredential.user?.uid;
 
@@ -62,14 +111,15 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
         'email': email,
         'qualification': qualification,
         'contactNumber': contactNumber,
+        'profileImage': profileImageUrl,
         'uid': uid,
         'role':'professional',
-        'approved':'false',
+        'approved':false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       _showSnackBar("Sign up successful!");
-      // Navigate to another screen (if needed)
+     
     } on FirebaseAuthException catch (e) {
       _showSnackBar(e.message ?? "An error occurred");
     } catch (e) {
@@ -100,7 +150,7 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
       ),
       body: Stack(
         children: [
-          // Background Gradient
+          
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -114,10 +164,17 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
           SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
-              children: [
-                SizedBox(height: 120),
+              children: [ GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
+                radius: 60,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: _profileImage != null ? MemoryImage(_profileImage!) : null,
+                child: _profileImage == null ? Icon(Icons.camera_alt, color: Colors.white, size: 30) : null,
+              ),
+            ),
+                 SizedBox(height: 16),
 
-                // Professional Name Field
                 _buildTextField(
                   controller: _nameController,
                   label: 'Full Name',
@@ -126,7 +183,6 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
                 ),
                 SizedBox(height: 16),
 
-                // Email Field
                 _buildTextField(
                   controller: _emailController,
                   label: 'Email Address',
@@ -136,7 +192,7 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
                 ),
                 SizedBox(height: 16),
 
-                // Password Field
+              
                 _buildTextField(
                   controller: _passwordController,
                   label: 'Password',

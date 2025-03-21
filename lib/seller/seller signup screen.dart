@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 class SellerSignupScreen extends StatefulWidget {
@@ -21,6 +25,51 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
   final TextEditingController _dobController = TextEditingController();
 
   bool _isLoading = false;
+
+  Uint8List? _profileImage;
+  final ImagePicker _picker = ImagePicker();
+
+ 
+ 
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      Uint8List imageBytes = await pickedFile.readAsBytes();
+      setState(() {
+        _profileImage = imageBytes;
+      });
+    } else {
+      _showSnackBar("No image selected");
+    }
+  }
+
+  // ☁ Upload Image to Cloudinary
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return null;
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/dqaitmb01/image/upload'),
+      );
+
+      request.fields['upload_preset'] = 'women_connect_images';
+      request.files.add(http.MultipartFile.fromBytes('file', _profileImage!, filename: 'profile.jpg'));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonData = jsonDecode(responseData);
+        return jsonData['secure_url'];
+      } else {
+        _showSnackBar("Image upload failed");
+        return null;
+      }
+    } catch (e) {
+      print("Cloudinary upload error: $e");
+      return null;
+    }
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
@@ -49,15 +98,16 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
+String? profileImageUrl = await _uploadProfileImage();
       await _firestore.collection('sellers').doc(userCredential.user!.uid).set({
         "name": _nameController.text.trim(),
         "email": _emailController.text.trim(),
         "phone": _phoneController.text.trim(),
         "dob": _dobController.text.trim(),
+        'profileImage': profileImageUrl,
         "userId": userCredential.user!.uid,
         'role':'seller',
-        'approved':'false',
+        'approved':false,
         "timestamp": FieldValue.serverTimestamp(),
       });
 
@@ -75,7 +125,11 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
         _isLoading = false;
       });
     }
+  }  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +140,15 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
         child: Form(
           key: _formKey,
           child: Column(
-            children: [
+            children: [GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
+                radius: 60,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: _profileImage != null ? MemoryImage(_profileImage!) : null,
+                child: _profileImage == null ? Icon(Icons.camera_alt, color: Colors.white, size: 30) : null,
+              ),
+            ),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder()),
