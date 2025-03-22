@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,28 +17,51 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  File? _selectedImage;
+  
+  Uint8List? _webImage;  // For Web (Stores image bytes)
+  File? _selectedImage;  // For Mobile (Stores File object)
   bool _isLoading = false;
 
-  // Function to Pick Image from Gallery
+  final ImagePicker _picker = ImagePicker();
+
+  // Function to Pick Image (Compatible with Web & Mobile)
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    
     if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        // Web: Convert to Uint8List
+        Uint8List imageBytes = await pickedFile.readAsBytes();
+        setState(() {
+          _webImage = imageBytes;
+        });
+      } else {
+        // Mobile: Store File
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
     }
   }
 
   // Function to Upload Image to Firebase Storage
-  Future<String> _uploadImageToFirebase(File image) async {
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('product_images')
-        .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+  Future<String> _uploadImageToFirebase() async {
+    if (_webImage == null && _selectedImage == null) return '';
 
-    await ref.putFile(image);
-    return await ref.getDownloadURL();
+    String fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    Reference ref = FirebaseStorage.instance.ref().child('product_images').child(fileName);
+    UploadTask uploadTask;
+
+    if (kIsWeb && _webImage != null) {
+      uploadTask = ref.putData(_webImage!);
+    } else if (!kIsWeb && _selectedImage != null) {
+      uploadTask = ref.putFile(_selectedImage!);
+    } else {
+      return '';
+    }
+
+    TaskSnapshot snapshot = await uploadTask;
+    return await snapshot.ref.getDownloadURL();
   }
 
   // Function to Add Product to Firestore
@@ -44,7 +69,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (_nameController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
         _priceController.text.isEmpty ||
-        _selectedImage == null) {
+        (_webImage == null && _selectedImage == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("All fields are required!")),
       );
@@ -57,15 +82,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     try {
       // Upload Image to Firebase Storage
-      String imageUrl = await _uploadImageToFirebase(_selectedImage!);
+      String imageUrl = await _uploadImageToFirebase();
 
       // Add Product to Firestore (Collection: 'products')
-      await FirebaseFirestore.instance.collection('products').add({
+      await FirebaseFirestore.instance.collection('Products').add({
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text),
         'imageUrl': imageUrl,
-        'created_at': Timestamp.now(),
+        'createdAt': Timestamp.now(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,12 +133,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.grey),
                     ),
-                    child: _selectedImage == null
-                        ? const Center(child: Text("Tap to select an image", style: TextStyle(color: Colors.grey)))
-                        : ClipRRect(
+                    child: _webImage != null
+                        ? ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                          ),
+                            child: Image.memory(_webImage!, fit: BoxFit.cover),
+                          )
+                        : _selectedImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                              )
+                            : const Center(child: Text("Tap to select an image", style: TextStyle(color: Colors.grey))),
                   ),
                 ),
                 const SizedBox(height: 16),
