@@ -1,42 +1,43 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:womenconnect/professional/edit_professionalpofile.dart';
 import 'package:womenconnect/user/choosescreen.dart';
-import 'package:womenconnect/seller/edit_sellerprofile.dart';
 
-class SellerProfilePage extends StatefulWidget {
+
+class ProfessionalProfilePage extends StatefulWidget {
   @override
-  _SellerProfilePageState createState() => _SellerProfilePageState();
+  _ProfessionalProfilePageState createState() => _ProfessionalProfilePageState();
 }
 
-class _SellerProfilePageState extends State<SellerProfilePage> {
+class _ProfessionalProfilePageState extends State<ProfessionalProfilePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
- final ImagePicker _picker = ImagePicker();
+  final ImagePicker _picker = ImagePicker();
   User? _user;
-  Map<String, dynamic>? _sellerData;
- File? _image;
+  Map<String, dynamic>? _professionalData;
+  File? _image;
 
   @override
   void initState() {
     super.initState();
     _user = _auth.currentUser;
-    _fetchSellerData();
+    _fetchProfessionalData();
   }
 
- Future<void> _fetchSellerData() async {
+  Future<void> _fetchProfessionalData() async {
     if (_user != null) {
       DocumentSnapshot userDoc =
-          await _firestore.collection('sellers').doc(_user!.uid).get();
+          await _firestore.collection('professionals').doc(_user!.uid).get();
       setState(() {
-        _sellerData = userDoc.data() as Map<String, dynamic>?;
+        _professionalData = userDoc.data() as Map<String, dynamic>?;
       });
     }
   }
- Future<void> _pickImage() async {
+
+  Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
@@ -45,6 +46,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
       // Upload image logic goes here
     }
   }
+
   void _logout() async {
     await _auth.signOut();
     Navigator.pushAndRemoveUntil(
@@ -59,32 +61,35 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     return Scaffold(
       backgroundColor: Colors.blueGrey[50],
       appBar: AppBar(
-        title: const Text("Seller Profile", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text("Professional Profile", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
-      body: _sellerData == null
+      body: _professionalData == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Profile Image from Cloudinary
-   CircleAvatar(
+                  // Profile Image
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
                       radius: 70,
                       backgroundColor: Colors.blueGrey[200],
                       backgroundImage: _image != null
                           ? FileImage(_image!)
-                          : (_sellerData!["imageUrl"] != null
-                              ? NetworkImage(_sellerData!["imageUrl"])
+                          : (_professionalData!["profileImage"] != null
+                              ? NetworkImage(_professionalData!["profileImage"])
                               : AssetImage("assets/default_avatar.png")) as ImageProvider,
                       child: _image == null
                           ? Icon(Icons.camera_alt, size: 30, color: Colors.white)
                           : null,
                     ),
+                  ),
                   const SizedBox(height: 16),
 
-                  // Seller Details Card
+                  // Professional Details Card
                   Card(
                     elevation: 3,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -93,12 +98,12 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildProfileText("Name", _sellerData!["name"]),
-                          _buildProfileText("Email", _sellerData!["email"]),
-                          _buildProfileText("Phone", _sellerData!["phone"]),
-                          _buildProfileText("Date of Birth", _sellerData!["dob"]),
-                          _buildProfileText("Shop Name", _sellerData!["shopName"]),
-                          _buildProfileText("Account Approved", _sellerData!["approved"] == "true" ? "Yes" : "No"),
+                          _buildProfileText("Name", _professionalData!["name"]),
+                          _buildProfileText("Email", _professionalData!["email"]),
+                          _buildProfileText("Qualification", _professionalData!["qualification"]),
+                          _buildProfileText("Contact Number", _professionalData!["contactNumber"]),
+                          _buildProfileText("Consultation Fees", _professionalData!["fees"]),
+                          _buildProfileText("Account Approved", _professionalData!["approved"] == true ? "Yes" : "No"),
                         ],
                       ),
                     ),
@@ -110,7 +115,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => EditSellerProfilePage()),
+                        MaterialPageRoute(builder: (context) => EditProfessionalProfileScreen()),
                       );
                     },
                     style: ElevatedButton.styleFrom(

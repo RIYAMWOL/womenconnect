@@ -10,28 +10,21 @@ class _AdminViewProductsScreenState extends State<AdminViewProductsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _searchQuery = "";
 
-  void _deleteProduct(String productId) async {
-    await _firestore.collection('products').doc(productId).delete();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Product deleted successfully")),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("View Products"),
+        title: const Text("Admin - View Products"),
         backgroundColor: Colors.deepOrangeAccent,
       ),
       body: Column(
         children: [
-          // Search Bar
+          // 🔎 Search Bar
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: TextField(
               decoration: InputDecoration(
-                hintText: "Search by product name or seller...",
+                hintText: "Search by product name...",
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
@@ -48,21 +41,29 @@ class _AdminViewProductsScreenState extends State<AdminViewProductsScreen> {
             ),
           ),
 
-          // Product List
+          // 📦 Product List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('products').snapshots(),
+              stream: _firestore
+                  .collection('Products')
+                  .orderBy('timestamp', descending: true) // 🕒 Sort by newest
+                  .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError) {
+                  return const Center(child: Text("Error loading products"));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No products available."));
+                }
 
+                // 🔍 Filter products based on search query
                 final products = snapshot.data!.docs.where((product) {
-                  final name = product['name']?.toLowerCase() ?? "";
-                  final sellerName = product['sellerName']?.toLowerCase() ?? "";
-                  return name.contains(_searchQuery) || sellerName.contains(_searchQuery);
+                  final name = (product['name'] ?? "").toLowerCase();
+                  return name.contains(_searchQuery);
                 }).toList();
 
                 if (products.isEmpty) {
-                  return const Center(child: Text("No products available."));
+                  return const Center(child: Text("No matching products found."));
                 }
 
                 return GridView.builder(
@@ -71,7 +72,7 @@ class _AdminViewProductsScreenState extends State<AdminViewProductsScreen> {
                     crossAxisCount: 2, // Two products per row
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 0.75, // Adjusts height of cards
+                    childAspectRatio: 0.75, // Adjust height of cards
                   ),
                   itemCount: products.length,
                   itemBuilder: (context, index) {
@@ -84,7 +85,7 @@ class _AdminViewProductsScreenState extends State<AdminViewProductsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Product Image
+                          // 🖼 Product Image
                           Expanded(
                             child: ClipRRect(
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
@@ -97,37 +98,41 @@ class _AdminViewProductsScreenState extends State<AdminViewProductsScreen> {
                                   : const Icon(Icons.image_not_supported, size: 100),
                             ),
                           ),
+
+                          // 📋 Product Details
                           Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Product Name
+                                // 🏷 Product Name
                                 Text(
                                   product['name'] ?? 'No Name',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
                                 const SizedBox(height: 4),
 
-                                // Product Price
+                                // 📜 Description
                                 Text(
-                                  "Price: ₹${product['price'] ?? 'N/A'}",
-                                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                                  product['description'] ?? 'No Description',
+                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
 
-                                // Seller Name
+                                // 💰 Price
                                 Text(
-                                  "Seller: ${product['sellerName'] ?? 'Unknown'}",
-                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
+                                  "₹${product['price'] ?? 'N/A'}",
+                                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                               ],
                             ),
                           ),
+
+                          // 🗑 Delete Button
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 8.0),
                             child: SizedBox(
@@ -152,6 +157,14 @@ class _AdminViewProductsScreenState extends State<AdminViewProductsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // 🗑 Delete Product from Firestore
+  void _deleteProduct(String productId) async {
+    await _firestore.collection('products').doc(productId).delete();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Product deleted successfully")),
     );
   }
 }
