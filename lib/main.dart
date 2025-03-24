@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:womenconnect/firebase_options.dart';
+import 'package:womenconnect/seller/addproduct.dart';
 import 'package:womenconnect/splashscreen.dart';
 
 

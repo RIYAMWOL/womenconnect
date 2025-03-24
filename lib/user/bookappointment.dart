@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
+
+import 'package:womenconnect/user/payment.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   @override
@@ -8,179 +11,159 @@ class BookAppointmentScreen extends StatefulWidget {
 }
 
 class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
-  String? _selectedCounselor;
-  int? _tokenNumber;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  DateTime? _selectedDate;
+  String? _selectedSlot;
+  String? _generatedToken;
+  Map<String, dynamic>? _selectedProfessional;
 
-  final Map<String, int> _counselorTokenLimits = {
-    "Dr. Sarah - Trauma Counselor": 5,
-    "Dr. Emily - Mental Health Specialist": 6,
-    "Dr. Lisa - Emotional Support Counselor": 4,
-    "Dr. Rachel - Women’s Wellness Coach": 5,
-    "Dr. Anna - Psychological Therapist": 6,
-  };
+  // Fetch professionals from Firestore collection "professionals"
+  Future<List<Map<String, dynamic>>> _fetchProfessionals() async {
+    try {
+      QuerySnapshot querySnapshot =
+          await _firestore.collection('professionals').get();
+      return querySnapshot.docs
+          .map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>})
+          .toList();
+    } catch (e) {
+      print("Error fetching professionals: $e");
+      return [];
+    }
+  }
 
-  final List<String> _counselorsOnLeave = ["Dr. Emily - Mental Health Specialist"];
-  final Map<String, int> _counselorAppointments = {};
-
-  void _selectDate() async {
-    DateTime? pickedDate = await showDatePicker(
+  // Open date picker
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime today = DateTime.now();
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2101),
+      initialDate: today,
+      firstDate: today,
+      lastDate: today.add(Duration(days: 30)),
     );
-    if (pickedDate != null) {
+
+    if (picked != null && picked != _selectedDate) {
       setState(() {
-        _dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+        _selectedDate = picked;
+        _selectedSlot = null;
       });
     }
   }
 
-  void _selectTime() async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (pickedTime != null) {
-      setState(() {
-        _timeController.text = pickedTime.format(context);
-      });
-    }
-  }
-
-  void _bookAppointment() {
-    if (_formKey.currentState!.validate()) {
-      String name = _nameController.text;
-      String date = _dateController.text;
-      String time = _timeController.text;
-
-      if (_counselorsOnLeave.contains(_selectedCounselor)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                "$_selectedCounselor is on leave on $date. Please select another date or counselor."),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      int currentAppointments = _counselorAppointments[_selectedCounselor] ?? 0;
-      int limit = _counselorTokenLimits[_selectedCounselor]!;
-
-      if (currentAppointments >= limit) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("No slots available for $_selectedCounselor on $date. Please choose another date."),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      _tokenNumber = Random().nextInt(1000) + 1;
-      _counselorAppointments[_selectedCounselor!] = currentAppointments + 1;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              "Appointment booked with $_selectedCounselor for $name on $date at $time. Your token number is $_tokenNumber."),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      _nameController.clear();
-      _dateController.clear();
-      _timeController.clear();
-      setState(() {
-        _selectedCounselor = null;
-      });
-    }
+  // Generate a unique token for the appointment
+  void _generateToken() {
+    final random = Random();
+    setState(() {
+      _generatedToken = (100000 + random.nextInt(900000)).toString();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Book Appointment"),
-        backgroundColor: Colors.deepOrangeAccent,
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              DropdownButtonFormField<String>(
-                value: _selectedCounselor,
-                decoration: InputDecoration(
-                  labelText: "Select Counselor",
-                  border: OutlineInputBorder(),
+      appBar: AppBar(title: Text("Book an Appointment")),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _fetchProfessionals(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text("No professionals available"));
+          }
+
+          return ListView.builder(
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              var professional = snapshot.data![index];
+              return Card(
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: NetworkImage(professional['imageUrl'] ?? ''),
+                  ),
+                  title: Text(professional['name'] ?? "Unknown"),
+                  subtitle: Text(professional['specialization'] ?? ""),
+                  trailing: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedProfessional = professional;
+                      });
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) => _buildSlotSelector(),
+                      );
+                    },
+                    child: Text("Book"),
+                  ),
                 ),
-                items: _counselorTokenLimits.keys.map((counselor) {
-                  return DropdownMenuItem(
-                    value: counselor,
-                    child: Text(counselor),
-                  );
-                }).toList(),
-                onChanged: (value) {
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSlotSelector() {
+    List<String> slots = ["10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM", "12:00 PM", "12:30 PM"];
+    return Container(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text("Select Date", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ElevatedButton(
+            onPressed: () => _selectDate(context),
+            child: Text(
+              _selectedDate == null
+                  ? "Choose Date"
+                  : "${_selectedDate!.toLocal()}".split(' ')[0],
+            ),
+          ),
+          SizedBox(height: 10),
+          Text("Available Slots", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Wrap(
+            spacing: 10,
+            children: slots.map((slot) {
+              return ChoiceChip(
+                label: Text(slot),
+                selected: _selectedSlot == slot,
+                onSelected: (selected) {
                   setState(() {
-                    _selectedCounselor = value;
+                    _selectedSlot = selected ? slot : null;
+                    _generateToken();
                   });
                 },
-                validator: (value) => value == null ? "Please select a counselor" : null,
-              ),
-              SizedBox(height: 12),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: "Your Name",
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value!.isEmpty ? "Please enter your name" : null,
-              ),
-              SizedBox(height: 12),
-              TextFormField(
-                controller: _dateController,
-                readOnly: true,
-                onTap: _selectDate,
-                decoration: InputDecoration(
-                  labelText: "Preferred Date",
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                validator: (value) => value!.isEmpty ? "Please select a date" : null,
-              ),
-              SizedBox(height: 12),
-              TextFormField(
-                controller: _timeController,
-                readOnly: true,
-                onTap: _selectTime,
-                decoration: InputDecoration(
-                  labelText: "Preferred Time",
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.access_time),
-                ),
-                validator: (value) => value!.isEmpty ? "Please select a time" : null,
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _bookAppointment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrangeAccent,
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                child: Text("Book Appointment"),
-              ),
-            ],
+              );
+            }).toList(),
           ),
-        ),
+          if (_generatedToken != null) ...[
+            SizedBox(height: 10),
+            Text("Your Token: $_generatedToken",
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+          ],
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              if (_selectedDate != null && _selectedSlot != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                        builder: (context) => PaymentScreen(
+                        professionalName: _selectedProfessional?['name'] ?? '',
+                        date: _selectedDate != null ? "${_selectedDate!.toLocal()}".split(' ')[0] : '',
+                        slot: _selectedSlot ?? '',
+                        consultationFee: _selectedProfessional?['consultationFee'] ?? 0,
+                        bookingFee: _selectedProfessional?['bookingFee'] ?? 0,
+                        ),
+                  ),
+                );
+              }
+            },
+            child: Text("Proceed"),
+          ),
+        ],
       ),
     );
   }
 }
+

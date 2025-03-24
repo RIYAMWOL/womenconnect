@@ -98,7 +98,6 @@ class _ManageProfessionalsScreenState extends State<ManageProfessionalsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Specialization: ${professionalData['specialization'] ?? 'N/A'}'),
-                      Text('Experience: ${professionalData['experience'] ?? '0'} years'),
                       Text('Phone: ${professionalData['contactNumber'] ?? 'N/A'}'),
                       Text('Email: ${professionalData['email'] ?? 'N/A'}'),
                       Text('Availability: ${professionalData['availability'] ?? 'N/A'}'),
@@ -166,7 +165,6 @@ class _UpdateProfessionalScreenState extends State<UpdateProfessionalScreen> {
 
     _nameController = TextEditingController(text: data['name'] ?? '');
     _specializationController = TextEditingController(text: data['specialization'] ?? '');
-    _experienceController = TextEditingController(text: data['experience']?.toString() ?? '0');
     _emailController = TextEditingController(text: data['email'] ?? '');
     _contactNumberController = TextEditingController(text: data['contactNumber'] ?? '');
     _availabilityController = TextEditingController(text: data['availability'] ?? '');
@@ -176,7 +174,6 @@ class _UpdateProfessionalScreenState extends State<UpdateProfessionalScreen> {
     await widget.professional.reference.update({
       'name': _nameController.text,
       'specialization': _specializationController.text,
-      'experience': int.tryParse(_experienceController.text) ?? 0,
       'email': _emailController.text,
       'contactNumber': _contactNumberController.text,
       'availability': _availabilityController.text,
@@ -196,7 +193,6 @@ class _UpdateProfessionalScreenState extends State<UpdateProfessionalScreen> {
           children: [
             TextField(controller: _nameController, decoration: InputDecoration(labelText: 'Name')),
             TextField(controller: _specializationController, decoration: InputDecoration(labelText: 'Specialization')),
-            TextField(controller: _experienceController, decoration: InputDecoration(labelText: 'Experience'), keyboardType: TextInputType.number),
             TextField(controller: _emailController, decoration: InputDecoration(labelText: 'Email')),
             TextField(controller: _contactNumberController, decoration: InputDecoration(labelText: 'Phone')),
             TextField(controller: _availabilityController, decoration: InputDecoration(labelText: 'Availability')),
