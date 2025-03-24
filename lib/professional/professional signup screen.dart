@@ -1,8 +1,4 @@
 import 'dart:convert';
-<<<<<<< HEAD
-import 'dart:io';
-=======
->>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
