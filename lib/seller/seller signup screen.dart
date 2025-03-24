@@ -4,13 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-<<<<<<< HEAD
-import 'package:firebase_storage/firebase_storage.dart';
-=======
->>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
 
 class SellerSignupScreen extends StatefulWidget {
   @override
@@ -21,7 +16,6 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -30,12 +24,8 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
-  final TextEditingController _shopNameController = TextEditingController();
 
-  Uint8List? _profileImage;
-  final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
-  File? _image;
 
   Uint8List? _profileImage;
   final ImagePicker _picker = ImagePicker();
@@ -96,47 +86,6 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
       });
     }
   }
- // 📸 Pick Image
-  Future<void> _pickImage() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      Uint8List imageBytes = await pickedFile.readAsBytes();
-      setState(() {
-        _profileImage = imageBytes;
-      });
-    } else {
-      _showSnackBar("No image selected");
-    }
-  }
-
-  // ☁ Upload Image to Cloudinary
-  Future<String?> _uploadProfileImage(String uid) async {
-    if (_profileImage == null) return null;
-
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://api.cloudinary.com/v1_1/dqaitmb01/image/upload'),
-      );
-
-      request.fields['upload_preset'] = 'women_connect_images';
-      request.files.add(http.MultipartFile.fromBytes('file', _profileImage!, filename: 'profile.jpg'));
-
-      var response = await request.send();
-      if (response.statusCode == 200) {
-        var responseData = await response.stream.bytesToString();
-        var jsonData = jsonDecode(responseData);
-        return jsonData['secure_url'];
-      } else {
-        _showSnackBar("Image upload failed");
-        return null;
-      }
-    } catch (e) {
-      print("Cloudinary upload error: $e");
-      return null;
-    }
-  }
-
 
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
@@ -150,31 +99,17 @@ class _SellerSignupScreenState extends State<SellerSignupScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-<<<<<<< HEAD
-
-      String? imageUrl = await _uploadProfileImage(userCredential.user!.uid);
-
-=======
 String? profileImageUrl = await _uploadProfileImage();
->>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
       await _firestore.collection('sellers').doc(userCredential.user!.uid).set({
         "name": _nameController.text.trim(),
         "email": _emailController.text.trim(),
         "shopName": _shopNameController.text.trim(),
         "phone": _phoneController.text.trim(),
         "dob": _dobController.text.trim(),
-<<<<<<< HEAD
-        "shopName": _shopNameController.text.trim(),
-        "userId": userCredential.user!.uid,
-        "role": "seller",
-        "approved": "false",
-        "imageUrl": imageUrl,
-=======
         'profileImage': profileImageUrl,
         "userId": userCredential.user!.uid,
         'role':'seller',
         'approved':false,
->>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
         "timestamp": FieldValue.serverTimestamp(),
       });
 
@@ -182,7 +117,7 @@ String? profileImageUrl = await _uploadProfileImage();
         const SnackBar(content: Text("Signup successful!"), backgroundColor: Colors.green),
       );
 
-      Navigator.pop(context);
+      Navigator.pop(context); // Navigate back after signup
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message ?? "Signup failed"), backgroundColor: Colors.red),
@@ -196,10 +131,6 @@ String? profileImageUrl = await _uploadProfileImage();
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  }
-
 
 
   @override
@@ -211,29 +142,19 @@ String? profileImageUrl = await _uploadProfileImage();
         child: Form(
           key: _formKey,
           child: Column(
-            children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
+            children: [GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
                 radius: 60,
                 backgroundColor: Colors.grey.shade300,
                 backgroundImage: _profileImage != null ? MemoryImage(_profileImage!) : null,
                 child: _profileImage == null ? Icon(Icons.camera_alt, color: Colors.white, size: 30) : null,
               ),
-              ),
-              const SizedBox(height: 12),
-
+            ),
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder()),
                 validator: (value) => value!.isEmpty ? "Enter your name" : null,
-              ),
-              const SizedBox(height: 12),
-
-              TextFormField(
-                controller: _shopNameController,
-                decoration: const InputDecoration(labelText: "Shop Name", border: OutlineInputBorder()),
-                validator: (value) => value!.isEmpty ? "Enter your shop name" : null,
               ),
               const SizedBox(height: 12),
 
@@ -261,6 +182,7 @@ const SizedBox(height: 12),
               ),
               const SizedBox(height: 12),
 
+              // Confirm Password Field
               TextFormField(
                 controller: _confirmPasswordController,
                 decoration: const InputDecoration(labelText: "Confirm Password", border: OutlineInputBorder()),
