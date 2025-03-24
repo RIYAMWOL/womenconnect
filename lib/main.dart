@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:womenconnect/admin/adminhome.dart';
 import 'package:womenconnect/admin/manageprofessionals.dart';
 import 'package:womenconnect/admin/managesellers.dart';
@@ -28,6 +29,11 @@ import 'package:womenconnect/user/user%20signup%20screen.dart';
 import 'package:womenconnect/user/viewproducts.dart';
 import 'package:womenconnect/splashscreen.dart';
 import 'professional/professional homepage.dart';
+=======
+import 'package:womenconnect/firebase_options.dart';
+import 'package:womenconnect/splashscreen.dart';
+
+>>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
 
 
 void main()async
@@ -41,10 +47,11 @@ void main()async
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
+  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+<<<<<<< HEAD
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -66,6 +73,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home:  SplashScreen(),
+=======
+debugShowCheckedModeBanner: false,
+      home:SplashScreen(),
+>>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
     );
   }
 }

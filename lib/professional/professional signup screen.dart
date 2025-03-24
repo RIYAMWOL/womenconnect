@@ -1,5 +1,8 @@
 import 'dart:convert';
+<<<<<<< HEAD
 import 'dart:io';
+=======
+>>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -51,6 +54,7 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
     }
   }
 
+<<<<<<< HEAD
   Future<String?> _uploadProfileImage() async {
     if (_profileImage == null) return null;
 
@@ -78,6 +82,32 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
       }
     } catch (e) {
       print("Error uploading image: $e");
+=======
+  // ☁ Upload Image to Cloudinary
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return null;
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/dqaitmb01/image/upload'),
+      );
+
+      request.fields['upload_preset'] = 'women_connect_images';
+      request.files.add(http.MultipartFile.fromBytes('file', _profileImage!, filename: 'profile.jpg'));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonData = jsonDecode(responseData);
+        return jsonData['secure_url'];
+      } else {
+        _showSnackBar("Image upload failed");
+        return null;
+      }
+    } catch (e) {
+      print("Cloudinary upload error: $e");
+>>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
       return null;
     }
   }
@@ -112,7 +142,12 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
         email: email,
         password: password,
       );
+<<<<<<< HEAD
 
+=======
+String? profileImageUrl = await _uploadProfileImage();
+      // Get user ID
+>>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
       final uid = userCredential.user?.uid;
       String? profileImageUrl = await _uploadProfileImage();
 
@@ -121,6 +156,7 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
         'email': email,
         'qualification': qualification,
         'contactNumber': contactNumber,
+<<<<<<< HEAD
         'fees': fees,
         'uid': uid,
         'profileImage': profileImageUrl ?? "",
@@ -130,6 +166,17 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
       });
 
       _showSnackBar("Sign up successful! Awaiting admin approval.");
+=======
+        'profileImage': profileImageUrl,
+        'uid': uid,
+        'role':'professional',
+        'approved':false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      _showSnackBar("Sign up successful!");
+     
+>>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
     } on FirebaseAuthException catch (e) {
       _showSnackBar(e.message ?? "An error occurred");
     } catch (e) {
@@ -156,7 +203,7 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
       ),
       body: Stack(
         children: [
-          // Background Gradient
+          
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -169,6 +216,7 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
           SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
+<<<<<<< HEAD
               children: [
                 const SizedBox(height: 100),
                 GestureDetector(
@@ -195,6 +243,76 @@ class _ProfessionalSignupScreenState extends State<ProfessionalSignupScreen> {
                 _buildTextField(_contactController, 'Contact Number', 'Enter your number', Icons.phone, TextInputType.phone),
                 _buildTextField(_feesController, 'Consultation Fees', 'Enter your fees', Icons.money, TextInputType.number),
                 const SizedBox(height: 30),
+=======
+              children: [ GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
+                radius: 60,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: _profileImage != null ? MemoryImage(_profileImage!) : null,
+                child: _profileImage == null ? Icon(Icons.camera_alt, color: Colors.white, size: 30) : null,
+              ),
+            ),
+                 SizedBox(height: 16),
+
+                _buildTextField(
+                  controller: _nameController,
+                  label: 'Full Name',
+                  hintText: 'Enter your full name',
+                  icon: Icons.person,
+                ),
+                SizedBox(height: 16),
+
+                _buildTextField(
+                  controller: _emailController,
+                  label: 'Email Address',
+                  hintText: 'Enter your email',
+                  icon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 16),
+
+              
+                _buildTextField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  hintText: 'Enter a strong password',
+                  icon: Icons.lock,
+                  obscureText: true,
+                ),
+                SizedBox(height: 16),
+
+                // Confirm Password Field
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirm Password',
+                  hintText: 'Re-enter your password',
+                  icon: Icons.lock,
+                  obscureText: true,
+                ),
+                SizedBox(height: 16),
+
+                // Qualification Field
+                _buildTextField(
+                  controller: _qualificationController,
+                  label: 'Qualification',
+                  hintText: 'Enter your qualification',
+                  icon: Icons.school,
+                ),
+                SizedBox(height: 16),
+
+                // Contact Number Field
+                _buildTextField(
+                  controller: _contactController,
+                  label: 'Contact Number',
+                  hintText: 'Enter your contact number',
+                  icon: Icons.phone,
+                  keyboardType: TextInputType.phone,
+                ),
+                SizedBox(height: 30),
+
+                // Sign Up Button
+>>>>>>> 668abf71e5ba998bdaab3d462b6d58afddf2ae82
                 ElevatedButton(
                   onPressed: _signUpProfessional,
                   style: ElevatedButton.styleFrom(
