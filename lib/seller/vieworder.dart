@@ -3,8 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SellerOrdersScreen extends StatefulWidget {
-  const SellerOrdersScreen({super.key});
-
   @override
   _SellerOrdersScreenState createState() => _SellerOrdersScreenState();
 }
@@ -46,9 +44,9 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
-            .collection('orders') // 🔥 Ensure this matches Firestore collection name
-            .where('sellerId', isEqualTo: sellerId) // ✅ Fetch only seller's orders
-            .orderBy('timestamp', descending: true) // ✅ Latest orders first
+            .collection('Orders')
+            .where('sellerId', isEqualTo: sellerId) // ✅ Fetch only orders for this seller
+            .orderBy('timestamp', descending: true) // ✅ Show latest orders first
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -101,18 +99,12 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                             const SizedBox(height: 5),
                             Text("Quantity: ${orderData['quantity']}", style: TextStyle(fontSize: 14)),
                             Text("Total: ₹${orderData['totalPrice']}", style: TextStyle(fontSize: 14, color: Colors.redAccent)),
-                            Text("Buyer: ${orderData['address']}", style: TextStyle(fontSize: 14, color: Colors.grey[700])),
+                            Text("Buyer Address: ${orderData['address']}", style: TextStyle(fontSize: 14, color: Colors.grey[700])),
                             Text("Payment: ${orderData['paymentMethod']}", style: TextStyle(fontSize: 14, color: Colors.black)),
                           ],
                         ),
                       ),
                       const SizedBox(width: 10),
-
-                      // 🏷 Order Status
-                      Chip(
-                        label: Text(orderData['status'] ?? "Pending", style: const TextStyle(color: Colors.white)),
-                        backgroundColor: _getStatusColor(orderData['status']),
-                      ),
                     ],
                   ),
                 ),
@@ -122,21 +114,5 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
         },
       ),
     );
-  }
-
-  // 🔥 Function to Set Status Color
-  Color _getStatusColor(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'shipped':
-        return Colors.blue;
-      case 'delivered':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 }

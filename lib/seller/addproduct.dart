@@ -6,9 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
-import 'package:dio/dio.dart';
 import 'dart:convert';
-
 import 'package:womenconnect/seller/sellerdashboardscreen.dart';
 
 class AddProductScreen extends StatefulWidget {
@@ -31,6 +29,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final String cloudinaryUrl = "https://api.cloudinary.com/v1_1/dqaitmb01/image/upload";
   final String cloudinaryPreset = "women_connect_images";
 
+  // 🔹 Pick Image (Web & Mobile Support)
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -43,6 +42,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  // 🔹 Upload Image to Cloudinary
   Future<String> _uploadImageToCloudinary() async {
     if (_webImage == null && _selectedImage == null) return '';
 
@@ -60,7 +60,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (response.statusCode == 200) {
         var responseData = await response.stream.bytesToString();
         var jsonData = json.decode(responseData);
-        return jsonData['secure_url']; // Cloudinary returns a secure URL
+        return jsonData['secure_url'];
       } else {
         throw Exception("Image upload failed: ${response.reasonPhrase}");
       }
@@ -69,6 +69,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  // 🔹 Add Product to Firestore
   Future<void> _addProduct() async {
     if (_nameController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
@@ -97,8 +98,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
         throw Exception("Invalid price format.");
       }
 
+      // ✅ Get current seller's ID
+      String? sellerId = FirebaseAuth.instance.currentUser?.uid;
+      if (sellerId == null) {
+        throw Exception("User not authenticated.");
+      }
+
+      // ✅ Fetch seller details (name, shop)
+      DocumentSnapshot sellerSnapshot =
+          await FirebaseFirestore.instance.collection('sellers').doc(sellerId).get();
+      String sellerName = sellerSnapshot['name'] ?? "Unknown Seller";
+      String shopName = sellerSnapshot['shopName'] ?? "Unknown Shop";
+
       print("Adding product to Firestore...");
       await FirebaseFirestore.instance.collection('Products').add({
+        'sellerId': sellerId, // ✅ Store sellerId
+        'sellerName': sellerName,
+        'shopName': shopName,
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': price,
@@ -121,6 +137,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  // 🔹 UI Build Function
   @override
   Widget build(BuildContext context) {
     return Scaffold(
