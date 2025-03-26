@@ -21,7 +21,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     AdminViewUsersScreen(),
     ManageProfessionalsScreen(),
     ManageSellersScreen(),
-    AdminViewProductsScreen(),
+   AdminViewProductsPage(),
     AdminManageAppointmentsScreen(),
     AdminViewOrdersScreen(),
   ];
@@ -143,7 +143,7 @@ class AdminDashboardScreen extends StatelessWidget {
       case 3:
         return ManageSellersScreen();
       case 4:
-        return AdminViewProductsScreen();
+        return AdminViewProductsPage();
       case 5:
         return AdminManageAppointmentsScreen();
       case 6:

@@ -1,170 +1,109 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
-class AdminViewProductsScreen extends StatefulWidget {
+class AdminViewProductsPage extends StatefulWidget {
   @override
-  _AdminViewProductsScreenState createState() => _AdminViewProductsScreenState();
+  _AdminViewProductsPageState createState() => _AdminViewProductsPageState();
 }
 
-class _AdminViewProductsScreenState extends State<AdminViewProductsScreen> {
+class _AdminViewProductsPageState extends State<AdminViewProductsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Admin - View Products"),
-        backgroundColor: Colors.deepOrangeAccent,
+        title: Text(
+          "All Products",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
       ),
-      body: Column(
-        children: [
-          // 🔎 Search Bar
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Search by product name...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[200],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _firestore
+            .collection("Products")
+            .orderBy("createdAt", descending: true) // ✅ Shows latest products first
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text("No products available"));
+          }
+
+          List<QueryDocumentSnapshot> products = snapshot.data!.docs;
+
+          return Padding(
+            padding: EdgeInsets.all(10),
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.8,
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-            ),
-          ),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                var productData = products[index].data() as Map<String, dynamic>;
 
-          // 📦 Product List
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('Products')
-                  .orderBy('timestamp', descending: true) // 🕒 Sort by newest
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return const Center(child: Text("Error loading products"));
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No products available."));
-                }
-
-                // 🔍 Filter products based on search query
-                final products = snapshot.data!.docs.where((product) {
-                  final name = (product['name'] ?? "").toLowerCase();
-                  return name.contains(_searchQuery);
-                }).toList();
-
-                if (products.isEmpty) {
-                  return const Center(child: Text("No matching products found."));
-                }
-
-                return GridView.builder(
-                  padding: const EdgeInsets.all(10),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // Two products per row
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.75, // Adjust height of cards
+                return Card(
+                  elevation: 5,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    var product = products[index];
-                    String productId = product.id;
-
-                    return Card(
-                      elevation: 5,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 🖼 Product Image
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                              child: product['imageUrl'] != null
-                                  ? Image.network(
-                                      product['imageUrl'],
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : const Icon(Icons.image_not_supported, size: 100),
-                            ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+                          child: Image.network(
+                            productData['imageUrl'] ?? "https://via.placeholder.com/150",
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(child: CircularProgressIndicator());
+                            },
+                            errorBuilder: (context, error, stackTrace) =>
+                                Image.network("https://via.placeholder.com/150"),
                           ),
-
-                          // 📋 Product Details
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // 🏷 Product Name
-                                Text(
-                                  product['name'] ?? 'No Name',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                                const SizedBox(height: 4),
-
-                                // 📜 Description
-                                Text(
-                                  product['description'] ?? 'No Description',
-                                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-
-                                // 💰 Price
-                                Text(
-                                  "₹${product['price'] ?? 'N/A'}",
-                                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // 🗑 Delete Button
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () => _deleteProduct(productId),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: const Text("Delete"),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    );
-                  },
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              productData['name'] ?? "No Name",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              productData['description'] ?? "No Description",
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              "₹${productData['price']?.toString() ?? '0'}",
+                              style: TextStyle(fontSize: 14, color: Colors.redAccent, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
-          ),
-        ],
+          );
+        },
       ),
-    );
-  }
-
-  // 🗑 Delete Product from Firestore
-  void _deleteProduct(String productId) async {
-    await _firestore.collection('products').doc(productId).delete();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Product deleted successfully")),
     );
   }
 }

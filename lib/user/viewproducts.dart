@@ -9,17 +9,24 @@ class Product {
   final String imageUrl;
   final String description;
 
-  Product({required this.id,required this.name, required this.price, required this.imageUrl, required this.description});
+  Product({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.imageUrl,
+    required this.description,
+  });
 
   // Factory constructor to create a Product from Firestore
   factory Product.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
     return Product(
-      id:doc.id,
-      name: data['name'] ?? '',
-      price: "\$${data['price']?.toString() ?? '0'}",
+      id: doc.id,
+      name: data['name'] ?? 'Unknown',
+      price: data['price']?.toString() ?? '0',
       imageUrl: data['imageUrl'] ?? 'https://via.placeholder.com/150',
-      description: data['description'] ?? '',
+      description: data['description'] ?? 'No description',
     );
   }
 }
@@ -36,14 +43,14 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Shop for Women",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text("Shop for Women", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection("Products").orderBy("timestamp", descending: true).snapshots(),
+        stream: _firestore
+            .collection("Products")
+            .orderBy("createdAt", descending: true) // ✅ Order by createdAt
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -53,7 +60,8 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
             return Center(child: Text("No products available"));
           }
 
-          List<Product> products = snapshot.data!.docs.map((doc) => Product.fromFirestore(doc)).toList();
+          List<Product> products =
+              snapshot.data!.docs.map((doc) => Product.fromFirestore(doc)).toList();
 
           return Padding(
             padding: EdgeInsets.all(10),
@@ -67,6 +75,7 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
               itemCount: products.length,
               itemBuilder: (context, index) {
                 final product = products[index];
+
                 return Card(
                   elevation: 5,
                   shape: RoundedRectangleBorder(
@@ -82,6 +91,12 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
                             product.imageUrl,
                             width: double.infinity,
                             fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(child: CircularProgressIndicator());
+                            },
+                            errorBuilder: (context, error, stackTrace) =>
+                                Image.network("https://via.placeholder.com/150"),
                           ),
                         ),
                       ),
@@ -103,8 +118,9 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              product.price,
-                              style: TextStyle(fontSize: 14, color: Colors.pinkAccent, fontWeight: FontWeight.bold),
+                              "₹${product.price}",
+                              style: TextStyle(
+                                  fontSize: 14, color: Colors.pinkAccent, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -124,7 +140,12 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
                             icon: Icon(Icons.shopping_cart),
                             label: Text("Buy"),
                             onPressed: () {
-                               Navigator.push(context, MaterialPageRoute(builder: (context) =>OrderScreen(productId: product.id),));
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OrderScreen(productId: product.id),
+                                ),
+                              );
                             },
                           ),
                         ),
@@ -138,8 +159,6 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
           );
         },
       ),
-     
-      
     );
   }
 }
