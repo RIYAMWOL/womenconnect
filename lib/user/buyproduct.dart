@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 class OrderScreen extends StatefulWidget {
   final String productId;
-
   OrderScreen({required this.productId});
 
   @override
@@ -18,6 +17,10 @@ class _OrderScreenState extends State<OrderScreen> {
   String productName = "";
   String imageUrl = "";
   String paymentMethod = "Cash on Delivery";
+  String sellerId = "";
+  String sellerName = "";
+  String shopName = "";
+
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -31,12 +34,15 @@ class _OrderScreenState extends State<OrderScreen> {
   Future<void> _fetchProductDetails() async {
     try {
       DocumentSnapshot doc = await FirebaseFirestore.instance.collection("Products").doc(widget.productId).get();
-      
+
       if (doc.exists) {
         setState(() {
           productName = doc["name"];
           imageUrl = doc["imageUrl"];
           price = double.parse(doc["price"].toString());
+          sellerId = doc["sellerId"];
+          sellerName = doc["sellerName"];
+          shopName = doc["shopName"];
           _isLoading = false;
         });
       } else {
@@ -66,9 +72,7 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 
   Future<void> _placeOrder() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isPlacingOrder = true;
@@ -85,6 +89,9 @@ class _OrderScreenState extends State<OrderScreen> {
         "phoneNumber": phoneController.text,
         "address": addressController.text,
         "paymentMethod": paymentMethod,
+        "sellerId": sellerId,
+        "sellerName": sellerName,
+        "shopName": shopName,
         "timestamp": FieldValue.serverTimestamp(),
       });
 
@@ -114,116 +121,52 @@ class _OrderScreenState extends State<OrderScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Product Image
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl,
-                        width: 180,
-                        height: 180,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                    Image.network(imageUrl, width: 180, height: 180, fit: BoxFit.cover),
                     SizedBox(height: 15),
-
-                    // Product Details
                     Text(productName, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    Text("Seller: $sellerName ($shopName)", style: TextStyle(fontSize: 16, color: Colors.grey[600])),
                     SizedBox(height: 10),
-                    Text("\$${price.toStringAsFixed(2)} per item", style: TextStyle(fontSize: 18, color: Colors.grey[700])),
+                    Text("₹${price.toStringAsFixed(2)} per item", style: TextStyle(fontSize: 18, color: Colors.grey[700])),
                     SizedBox(height: 15),
-
-                    // Quantity Selector
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        IconButton(
-                          onPressed: _decreaseQuantity,
-                          icon: Icon(Icons.remove, color: Colors.pinkAccent),
-                        ),
-                        Text(
-                          quantity.toString(),
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        IconButton(
-                          onPressed: _increaseQuantity,
-                          icon: Icon(Icons.add, color: Colors.pinkAccent),
-                        ),
+                        IconButton(onPressed: _decreaseQuantity, icon: Icon(Icons.remove, color: Colors.pinkAccent)),
+                        Text(quantity.toString(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        IconButton(onPressed: _increaseQuantity, icon: Icon(Icons.add, color: Colors.pinkAccent)),
                       ],
                     ),
                     SizedBox(height: 15),
-
-                    // Total Price
-                    Text("Total Price: \$${totalPrice.toStringAsFixed(2)}", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text("Total Price: ₹${totalPrice.toStringAsFixed(2)}", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     SizedBox(height: 20),
-
-                    // Phone Number Field
                     TextFormField(
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: "Phone Number",
-                        prefixIcon: Icon(Icons.phone, color: Colors.pinkAccent),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return "Enter your phone number";
-                        if (value.length < 10) return "Enter a valid phone number";
-                        return null;
-                      },
+                      decoration: InputDecoration(labelText: "Phone Number", border: OutlineInputBorder()),
+                      validator: (value) => value == null || value.isEmpty ? "Enter your phone number" : null,
                     ),
                     SizedBox(height: 15),
-
-                    // Address Field
                     TextFormField(
                       controller: addressController,
-                      decoration: InputDecoration(
-                        labelText: "Delivery Address",
-                        prefixIcon: Icon(Icons.location_on, color: Colors.pinkAccent),
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: InputDecoration(labelText: "Delivery Address", border: OutlineInputBorder()),
                       maxLines: 2,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return "Enter your address";
-                        return null;
-                      },
+                      validator: (value) => value == null || value.isEmpty ? "Enter your address" : null,
                     ),
                     SizedBox(height: 15),
-
-                    // Payment Method Dropdown
                     DropdownButtonFormField<String>(
                       value: paymentMethod,
-                      decoration: InputDecoration(
-                        labelText: "Payment Method",
-                        prefixIcon: Icon(Icons.payment, color: Colors.pinkAccent),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: ["Cash on Delivery", "UPI", "Credit/Debit Card"]
-                          .map((method) => DropdownMenuItem(
-                                value: method,
-                                child: Text(method),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          paymentMethod = value!;
-                        });
-                      },
+                      decoration: InputDecoration(labelText: "Payment Method", border: OutlineInputBorder()),
+                      items: ["Cash on Delivery", "UPI", "Credit/Debit Card"].map((method) => DropdownMenuItem(value: method, child: Text(method))).toList(),
+                      onChanged: (value) => setState(() => paymentMethod = value!),
                     ),
                     SizedBox(height: 25),
-
-                    // Place Order Button
                     _isPlacingOrder
                         ? CircularProgressIndicator()
                         : ElevatedButton.icon(
                             onPressed: _placeOrder,
                             icon: Icon(Icons.shopping_cart),
                             label: Text("Place Order"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.pinkAccent,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                              textStyle: TextStyle(fontSize: 18),
-                            ),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.pinkAccent, foregroundColor: Colors.white, padding: EdgeInsets.symmetric(horizontal: 30, vertical: 14), textStyle: TextStyle(fontSize: 18)),
                           ),
                   ],
                 ),

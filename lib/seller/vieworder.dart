@@ -45,12 +45,15 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
             .collection('Orders')
-            .where('sellerId', isEqualTo: sellerId) // ✅ Fetch only orders for this seller
-            .orderBy('timestamp', descending: true) // ✅ Show latest orders first
+            .where('sellerId', isEqualTo: sellerId)
+            .orderBy('timestamp', descending: true) // ✅ Ensure timestamp indexing
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
@@ -68,10 +71,17 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
             itemBuilder: (context, index) {
               var orderData = orders[index].data() as Map<String, dynamic>;
 
+              // ✅ Handle missing timestamp
+              Timestamp? timestamp = orderData['timestamp'] as Timestamp?;
+              String formattedDate = timestamp != null
+                  ? "${timestamp.toDate().toLocal()}"
+                  : "Unknown Date";
+
               return Card(
                 margin: const EdgeInsets.all(10),
                 elevation: 5,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: Row(
@@ -80,11 +90,13 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Image.network(
-                          orderData['imageUrl'] ?? "https://via.placeholder.com/150",
+                          orderData['imageUrl'] ??
+                              "https://via.placeholder.com/150",
                           width: 70,
                           height: 70,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.shopping_bag, size: 50),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.shopping_bag, size: 50),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -95,12 +107,23 @@ class _SellerOrdersScreenState extends State<SellerOrdersScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(orderData['productName'] ?? "Unknown Product",
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 5),
-                            Text("Quantity: ${orderData['quantity']}", style: TextStyle(fontSize: 14)),
-                            Text("Total: ₹${orderData['totalPrice']}", style: TextStyle(fontSize: 14, color: Colors.redAccent)),
-                            Text("Buyer Address: ${orderData['address']}", style: TextStyle(fontSize: 14, color: Colors.grey[700])),
-                            Text("Payment: ${orderData['paymentMethod']}", style: TextStyle(fontSize: 14, color: Colors.black)),
+                            Text("Quantity: ${orderData['quantity']}",
+                                style: TextStyle(fontSize: 14)),
+                            Text("Total: ₹${orderData['totalPrice']}",
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.redAccent)),
+                            Text("Buyer Address: ${orderData['address'] ?? "N/A"}",
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.grey[700])),
+                            Text("Payment: ${orderData['paymentMethod']}",
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.black)),
+                            Text("Order Date: $formattedDate",
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.blueGrey)),
                           ],
                         ),
                       ),
